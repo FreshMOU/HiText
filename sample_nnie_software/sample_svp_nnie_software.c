@@ -1629,11 +1629,11 @@ static HI_S32 SVP_NNIE_Ssd_SoftmaxForward(HI_U32 u32SoftMaxInHeight,
     for (u32ConcatCnt = 0; u32ConcatCnt < u32ConcatNum; u32ConcatCnt++)
     {
         ps32InputData = aps32SoftMaxInputData[u32ConcatCnt];
-        u32Stride = au32ConvStride[u32ConcatCnt];
-        u32InputChannel = au32SoftMaxInChn[u32ConcatCnt];
-        u32OuterNum = u32InputChannel / u32SoftMaxInHeight;
-        u32InnerNum = u32SoftMaxInHeight;
-        u32Skip = u32Stride / u32InnerNum;
+        u32Stride = au32ConvStride[u32ConcatCnt];       //48 32 16 16 16 16
+        u32InputChannel = au32SoftMaxInChn[u32ConcatCnt];   // 92160
+        u32OuterNum = u32InputChannel / u32SoftMaxInHeight; // 48080
+        u32InnerNum = u32SoftMaxInHeight;       // 2
+        u32Skip = u32Stride / u32InnerNum;      //Skip = 24 16 8 8 8 8, Left = 0
         u32Left = u32Stride % u32InnerNum;        // do softmax
         for (i = 0; i < u32OuterNum; i++)
         {
@@ -1787,18 +1787,18 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
     {
         for (j = 0; j < u32PriorNum; j++)
         {
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 1] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM + 1];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 2] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM + 2];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 3] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM + 3];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 4] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM + 4];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 5] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM + 5];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 6] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM + 6];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 7] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM + 7];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 8] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM + 8];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 9] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM + 9];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +10] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM +10];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +11] = ps32AllDecodeBoxes[j * SAMPLE_SVP_NNIE_COORDI_NUM +11];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 1] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON + 1];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 2] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON + 2];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 3] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON + 3];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 4] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON + 4];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 5] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON + 5];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 6] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON + 6];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 7] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON + 7];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 8] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON + 8];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 9] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON + 9];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +10] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON +10];
+            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +11] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON +11];
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12] = ps32ConfScores[j*u32ClassNum + i];
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +13] = 0;
         }
@@ -3144,8 +3144,6 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
         aps32PermuteResult[i] = (HI_S32*)pstNnieParam->astSegData[0].astDst[i].u64VirAddr;
     }
 
-    FILE *filewrite = fopen("data.txt", "w");
-
     /*priorbox*/
     aps32PriorboxOutputData[0] = (HI_S32*)pstSoftwareParam->stPriorBoxTmpBuf.u64VirAddr;
     for (i = 1; i < SAMPLE_SVP_NNIE_SSD_PRIORBOX_NUM; i++)
@@ -3176,12 +3174,7 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     ps32SoftMaxOutputData = (HI_S32*)pstSoftwareParam->stSoftMaxTmpBuf.u64VirAddr;
     for(i = 0; i < SAMPLE_SVP_NNIE_SSD_SOFTMAX_NUM; i++)
     {
-        fprintf(filewrite, "softmax input:\n");
         aps32SoftMaxInputData[i] = aps32PermuteResult[i*2+1];
-        HI_S32 *temp = aps32SoftMaxInputData[i];
-        for(HI_U32 j=0; j < pstSoftwareParam->au32SoftMaxInChn[i]; j++)
-            fprintf(filewrite, "%d ", *(temp++));
-        fprintf(filewrite, "\n");
     }
     // FIXME:
     (void)SVP_NNIE_Ssd_SoftmaxForward(pstSoftwareParam->u32SoftMaxInHeight,
@@ -3194,15 +3187,9 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     ps32DetectionOutTmpBuf = (HI_S32*)pstSoftwareParam->stGetResultTmpBuf.u64VirAddr;
     for(i = 0; i < SAMPLE_SVP_NNIE_SSD_PRIORBOX_NUM; i++)
     {
-        fprintf(filewrite, "detection input:\n");
         aps32DetectionLocData[i] = aps32PermuteResult[i*2];
-        HI_S32 *temp = aps32DetectionLocData[i];
-        for(HI_U32 j=0; j < pstSoftwareParam->au32DetectInputChn[i]; j++)
-            fprintf(filewrite, "%d ", *(temp++));
-        fprintf(filewrite, "\n");
     }
 
-    fclose(filewrite);
     // FIXME:
     (void)SVP_NNIE_Ssd_DetectionOutForward(pstSoftwareParam->u32ConcatNum,
         pstSoftwareParam->u32ConfThresh,pstSoftwareParam->u32ClassNum, pstSoftwareParam->u32TopK,

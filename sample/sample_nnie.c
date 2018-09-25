@@ -6,6 +6,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <signal.h>
 #include <pthread.h>
@@ -741,6 +742,7 @@ static HI_S32 SAMPLE_SVP_NNIE_Detection_PrintResult(SVP_BLOB_S *pstDstScore,
     HI_S32 s32X3 = 0,s32Y3= 0,s32X4 = 0,s32Y4 = 0;
 
     u32RoiNumBias += ps32ClassRoiNum[0];
+    FILE *filewrite = fopen("result.txt", "w");
     for (i = 1; i < u32ClassNum; i++)
     {
         u32ScoreBias = u32RoiNumBias;
@@ -750,6 +752,7 @@ static HI_S32 SAMPLE_SVP_NNIE_Detection_PrintResult(SVP_BLOB_S *pstDstScore,
             f32PrintResultThresh && ps32ClassRoiNum[i]!=0)
         {
             SAMPLE_SVP_TRACE_INFO("==== The %dth class box info====\n", i);
+            fprintf(filewrite, "%d\n", i);
         }
         for (j = 0; j < (HI_U32)ps32ClassRoiNum[i]; j++)
         {
@@ -770,10 +773,12 @@ static HI_S32 SAMPLE_SVP_NNIE_Detection_PrintResult(SVP_BLOB_S *pstDstScore,
             s32Y3 = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 9];
             s32X4 = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 10];
             s32Y4 = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 11];
-            SAMPLE_SVP_TRACE_INFO("%d %d %d %d %f\n", s32XMin, s32YMin, s32XMax, s32YMax, f32Score);
+            SAMPLE_SVP_TRACE_INFO("%d %d %d %d %d %d %d %d %f\n", s32X1, s32Y1, s32X2, s32Y2, s32X3, s32Y3, s32X4, s32Y4, f32Score);
+            fprintf(filewrite, "%d %d %d %d %d %d %d %d %f\n", s32X1, s32Y1, s32X2, s32Y2, s32X3, s32Y3, s32X4, s32Y4, f32Score);
         }
         u32RoiNumBias += ps32ClassRoiNum[i];
     }
+    fclose(filewrite);
     return HI_SUCCESS;
 }
 
@@ -1849,7 +1854,7 @@ static HI_S32 SAMPLE_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     pstSoftWareParam->au32PriorBoxHeight[4] = 4;
     pstSoftWareParam->au32PriorBoxHeight[5] = 2;
 
-    pstSoftWareParam->u32OriImHeight = pstNnieParam->astSegData[0].astSrc[0].unShape.stWhc.u32Height;
+    pstSoftWareParam->u32OriImHeight = pstNnieParam->astSegData[0].astSrc[0].unShape.stWhc.u32Height;   //384
     pstSoftWareParam->u32OriImWidth = pstNnieParam->astSegData[0].astSrc[0].unShape.stWhc.u32Width;
 
     pstSoftWareParam->af32PriorBoxMinSize[0][0] = 30.0f;
@@ -2091,6 +2096,8 @@ void SAMPLE_SVP_NNIE_Ssd(char *SrcFile, char *ModelName)
     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
         "Error,SAMPLE_SVP_NNIE_Ssd_ParamInit failed!\n");
 
+    struct timeval tv_begin, tv_end;
+    gettimeofday(&tv_begin,NULL);
     /*Fill src data*/
     SAMPLE_SVP_TRACE_INFO("Ssd start!\n");
     stInputDataIdx.u32SegIdx = 0;
@@ -2112,6 +2119,10 @@ void SAMPLE_SVP_NNIE_Ssd(char *SrcFile, char *ModelName)
     s32Ret = SAMPLE_SVP_NNIE_Ssd_GetResult(&s_stSsdNnieParam,&s_stSsdSoftwareParam);
     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
         "Error,SAMPLE_SVP_NNIE_Ssd_GetResult failed!\n");
+    
+    gettimeofday(&tv_end, NULL);
+    double total_time = (double) (tv_begin.tv_usec - tv_end.tv_usec) / 1000;
+    SAMPLE_SVP_TRACE_INFO("%.3f ms\n", total_time);
 
     /*print result, this sample has 21 classes:
      class 0:background     class 1:plane           class 2:bicycle
