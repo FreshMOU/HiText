@@ -1882,7 +1882,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             ps32DstBbox += (HI_S32)(u32Offset * SAMpLE_SVP_NNIE_POLYGON);
             for (j = 0; j < u32KeepTopK; j++)
             {
-                if (ps32AfterTopK[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 12] == i)
+                if (ps32AfterTopK[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 13] == i)
                 {
                     ps32DstScore[u32RoiOutCnt] = ps32AfterTopK[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 12];
                     ps32DstBbox[u32RoiOutCnt * SAMpLE_SVP_NNIE_POLYGON] = ps32AfterTopK[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH];
