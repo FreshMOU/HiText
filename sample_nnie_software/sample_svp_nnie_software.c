@@ -1,6 +1,7 @@
 #include"sample_svp_nnie_software.h"
 #include <math.h>
 #include "stdio.h"
+#include "TextExample.h"
 
 #ifdef __cplusplus    // If used by C++ code,
 extern "C" {          // we need to export the C interface
@@ -128,6 +129,31 @@ static HI_S32 SVP_NNIE_SSD_SoftMax(HI_S32* ps32Src, HI_S32 s32ArraySize, HI_S32*
     /***** define parameters ****/
     HI_S32 s32Max = 0;
     HI_S32 s32Sum = 0;
+    HI_S32 i = 0;
+    for (i = 0; i < s32ArraySize; ++i)
+    {
+        if (s32Max < ps32Src[i])
+        {
+            s32Max = ps32Src[i];
+        }
+    }
+    for (i = 0; i < s32ArraySize; ++i)
+    {
+        ps32Dst[i] = (HI_S32)(SAMPLE_SVP_NNIE_QUANT_BASE* exp((HI_FLOAT)(ps32Src[i] - s32Max) / SAMPLE_SVP_NNIE_QUANT_BASE));
+        s32Sum += ps32Dst[i];
+    }
+    for (i = 0; i < s32ArraySize; ++i)
+    {
+        ps32Dst[i] = (HI_S32)(((HI_FLOAT)ps32Dst[i] / (HI_FLOAT)s32Sum) * SAMPLE_SVP_NNIE_QUANT_BASE);
+    }
+    return HI_SUCCESS;
+}
+
+static HI_S32 SVP_NNIE_SSD_SoftMax_Float(float* ps32Src, HI_S32 s32ArraySize, HI_S32* ps32Dst)
+{
+    /***** define parameters ****/
+    float s32Max = 0;
+    float s32Sum = 0;
     HI_S32 i = 0;
     for (i = 0; i < s32ArraySize; ++i)
     {
@@ -1612,10 +1638,11 @@ static HI_S32 SVP_NNIE_Ssd_PriorBoxForward(HI_U32 u32PriorBoxWidth,
 static HI_S32 SVP_NNIE_Ssd_SoftmaxForward(HI_U32 u32SoftMaxInHeight,
     HI_U32 au32SoftMaxInChn[], HI_U32 u32ConcatNum, HI_U32 au32ConvStride[],
     HI_U32 u32SoftMaxOutWidth, HI_U32 u32SoftMaxOutHeight, HI_U32 u32SoftMaxOutChn,
-    HI_S32* aps32SoftMaxInputData[], HI_S32* ps32SoftMaxOutputData)
+    HI_S32* aps32SoftMaxInputData[], HI_S32* ps32SoftMaxOutputData, float* PermuteData[])
 {
     HI_S32* ps32InputData = NULL;
     HI_S32* ps32OutputTmp = NULL;
+    float * ps32InputDataFloat = NULL;
     HI_U32 u32OuterNum = 0;
     HI_U32 u32InnerNum = 0;
     HI_U32 u32InputChannel = 0;
@@ -1626,26 +1653,53 @@ static HI_S32 SVP_NNIE_Ssd_SoftmaxForward(HI_U32 u32SoftMaxInHeight,
     HI_U32 u32Skip = 0;
     HI_U32 u32Left = 0;
     ps32OutputTmp = ps32SoftMaxOutputData;
+    int OutputCount = 0;
     for (u32ConcatCnt = 0; u32ConcatCnt < u32ConcatNum; u32ConcatCnt++)
     {
-        ps32InputData = aps32SoftMaxInputData[u32ConcatCnt];
-        u32Stride = au32ConvStride[u32ConcatCnt];       //48 32 16 16 16 16
-        u32InputChannel = au32SoftMaxInChn[u32ConcatCnt];   // 92160
-        u32OuterNum = u32InputChannel / u32SoftMaxInHeight; // 48080
-        u32InnerNum = u32SoftMaxInHeight;       // 2
-        u32Skip = u32Stride / u32InnerNum;      //Skip = 24 16 8 8 8 8, Left = 0
-        u32Left = u32Stride % u32InnerNum;        // do softmax
-        for (i = 0; i < u32OuterNum; i++)
+        if (u32ConcatCnt < 1)
         {
-            s32Ret = SVP_NNIE_SSD_SoftMax(ps32InputData, (HI_S32)u32InnerNum,ps32OutputTmp);
-            if ((i + 1) % u32Skip == 0)
+            ps32InputDataFloat = PermuteData[u32ConcatCnt*2+1];
+            u32Stride = au32ConvStride[u32ConcatCnt];       //48 32 16 16 16 16
+            u32InputChannel = au32SoftMaxInChn[u32ConcatCnt];   // 92160
+            u32OuterNum = u32InputChannel / u32SoftMaxInHeight; // 48080
+            u32InnerNum = u32SoftMaxInHeight;       // 2
+            u32Skip = u32Stride / u32InnerNum;      //Skip = 24 16 8 8 8 8, Left = 0
+            u32Left = u32Stride % u32InnerNum;        // do softmax
+            for (i = 0; i < u32OuterNum; i++)
             {
-                ps32InputData += u32Left;
+                s32Ret = SVP_NNIE_SSD_SoftMax_Float(ps32InputDataFloat, (HI_S32)u32InnerNum, ps32OutputTmp);
+                if ((i + 1) % u32Skip == 0)
+                {
+                    ps32InputDataFloat += u32Left;
+                }
+                ps32InputDataFloat += u32InnerNum;
+                ps32OutputTmp += u32InnerNum;
+                OutputCount += u32InnerNum;
             }
-            ps32InputData += u32InnerNum;
-            ps32OutputTmp += u32InnerNum;
+        }
+        else
+        {
+            ps32InputData = aps32SoftMaxInputData[u32ConcatCnt];
+            u32Stride = au32ConvStride[u32ConcatCnt];       //48 32 16 16 16 16
+            u32InputChannel = au32SoftMaxInChn[u32ConcatCnt];   // 92160
+            u32OuterNum = u32InputChannel / u32SoftMaxInHeight; // 48080
+            u32InnerNum = u32SoftMaxInHeight;       // 2
+            u32Skip = u32Stride / u32InnerNum;      //Skip = 24 16 8 8 8 8, Left = 0
+            u32Left = u32Stride % u32InnerNum;        // do softmax
+            for (i = 0; i < u32OuterNum; i++)
+            {
+                s32Ret = SVP_NNIE_SSD_SoftMax(ps32InputData, (HI_S32)u32InnerNum,ps32OutputTmp);
+                if ((i + 1) % u32Skip == 0)
+                {
+                    ps32InputData += u32Left;
+                }
+                ps32InputData += u32InnerNum;
+                ps32OutputTmp += u32InnerNum;
+            }
         }
     }
+
+    fprintf(stderr, "OutputCount: %d\n", OutputCount);
     return s32Ret;
 }
 
@@ -1684,7 +1738,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
     HI_U32 u32ConfThresh,HI_U32 u32ClassNum, HI_U32 u32TopK, HI_U32 u32KeepTopK, HI_U32 u32NmsThresh,
     HI_U32 au32DetectInputChn[], HI_S32* aps32AllLocPreds[], HI_S32* aps32AllPriorBoxes[],
     HI_S32* ps32ConfScores, HI_S32* ps32AssistMemPool, HI_S32* ps32DstScoreSrc,
-    HI_S32* ps32DstBboxSrc, HI_S32* ps32RoiOutCntSrc)
+    HI_S32* ps32DstBboxSrc, HI_S32* ps32RoiOutCntSrc, float* PermuteData[])
 {
     /************* check input parameters ****************/
     /******** define variables **********/
@@ -1718,6 +1772,8 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
     HI_U32 u32Offset = 0;
     HI_S32 s32Ret = HI_SUCCESS;
     u32PriorNum = 0;
+
+    float* ps32LocPredsFloat = NULL;
     for (i = 0; i < u32ConcatNum; i++)
     {
         u32PriorNum += au32DetectInputChn[i] / SAMpLE_SVP_NNIE_POLYGON;
@@ -1730,57 +1786,113 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
     u32SrcIdx = 0;
     for (i = 0; i < u32ConcatNum; i++)
     {
-        /********** get loc predictions ************/
-        ps32LocPreds = aps32AllLocPreds[i];
-        u32NumPredsPerClass = au32DetectInputChn[i] / SAMpLE_SVP_NNIE_POLYGON;
-        /********** get Prior Bboxes ************/
-        ps32PriorBoxes = aps32AllPriorBoxes[i];
-        ps32PriorVar = ps32PriorBoxes + u32NumPredsPerClass*SAMPLE_SVP_NNIE_COORDI_NUM;
-        for (j = 0; j < u32NumPredsPerClass; j++)
+        if ( i < 1 )
         {
-            //printf("ps32PriorBoxes start***************\n");
-            f32PriorWidth = (HI_FLOAT)(ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2] - ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM]);
-            f32PriorHeight = (HI_FLOAT)(ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3] - ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM + 1]);
-            f32PriorCenterX = (ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2] + ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM])*SAMPLE_SVP_NNIE_HALF;
-            f32PriorCenterY = (ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3] + ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1])*SAMPLE_SVP_NNIE_HALF;
+            ps32LocPredsFloat = PermuteData[2*i];
+            u32NumPredsPerClass = au32DetectInputChn[i] / SAMpLE_SVP_NNIE_POLYGON;
+            /********** get Prior Bboxes ************/
+            ps32PriorBoxes = aps32AllPriorBoxes[i];
+            ps32PriorVar = ps32PriorBoxes + u32NumPredsPerClass*SAMPLE_SVP_NNIE_COORDI_NUM;
+            for (j = 0; j < u32NumPredsPerClass; j++)
+            {
+                //printf("ps32PriorBoxes start***************\n");
+                f32PriorWidth = (HI_FLOAT)(ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2] - ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM]);
+                f32PriorHeight = (HI_FLOAT)(ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3] - ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM + 1]);
+                f32PriorCenterX = (ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2] + ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM])*SAMPLE_SVP_NNIE_HALF;
+                f32PriorCenterY = (ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3] + ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1])*SAMPLE_SVP_NNIE_HALF;
 
-            f32DecodeBoxCenterX = ((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                ((HI_FLOAT)ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth+f32PriorCenterX;
+                f32DecodeBoxCenterX = ((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    ((HI_FLOAT)ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth+f32PriorCenterX;
 
-            f32DecodeBoxCenterY = ((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                ((HI_FLOAT)ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+f32PriorCenterY;
+                f32DecodeBoxCenterY = ((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    ((HI_FLOAT)ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+f32PriorCenterY;
 
-            f32DecodeBoxWidth = exp(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+2]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                ((HI_FLOAT)ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+2]/SAMPLE_SVP_NNIE_QUANT_BASE))*f32PriorWidth;
+                f32DecodeBoxWidth = exp(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+2]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    ((HI_FLOAT)ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+2]/SAMPLE_SVP_NNIE_QUANT_BASE))*f32PriorWidth;
 
-            f32DecodeBoxHeight = exp(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+3]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                ((HI_FLOAT)ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+3]/SAMPLE_SVP_NNIE_QUANT_BASE))*f32PriorHeight;
+                f32DecodeBoxHeight = exp(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+3]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    ((HI_FLOAT)ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+3]/SAMPLE_SVP_NNIE_QUANT_BASE))*f32PriorHeight;
 
-            //printf("ps32PriorBoxes end***************\n");
+                //printf("ps32PriorBoxes end***************\n");
 
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterX - f32DecodeBoxWidth * SAMPLE_SVP_NNIE_HALF);
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterY - f32DecodeBoxHeight * SAMPLE_SVP_NNIE_HALF);
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterX + f32DecodeBoxWidth * SAMPLE_SVP_NNIE_HALF);
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterY + f32DecodeBoxHeight * SAMPLE_SVP_NNIE_HALF);
-            /* polygon */
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 4]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 5]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 6]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 7]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 8]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 9]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+10]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
-            ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+11]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterX - f32DecodeBoxWidth * SAMPLE_SVP_NNIE_HALF);
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterY - f32DecodeBoxHeight * SAMPLE_SVP_NNIE_HALF);
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterX + f32DecodeBoxWidth * SAMPLE_SVP_NNIE_HALF);
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterY + f32DecodeBoxHeight * SAMPLE_SVP_NNIE_HALF);
+                /* polygon */
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 4]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 5]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 6]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 7]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 8]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 9]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+10]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+11]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
+            }
+        }
+        else
+        {
+            /********** get loc predictions ************/
+            ps32LocPreds = aps32AllLocPreds[i];
+            u32NumPredsPerClass = au32DetectInputChn[i] / SAMpLE_SVP_NNIE_POLYGON;
+            /********** get Prior Bboxes ************/
+            ps32PriorBoxes = aps32AllPriorBoxes[i];
+            ps32PriorVar = ps32PriorBoxes + u32NumPredsPerClass*SAMPLE_SVP_NNIE_COORDI_NUM;
+            for (j = 0; j < u32NumPredsPerClass; j++)
+            {
+                //printf("ps32PriorBoxes start***************\n");
+                f32PriorWidth = (HI_FLOAT)(ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2] - ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM]);
+                f32PriorHeight = (HI_FLOAT)(ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3] - ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM + 1]);
+                f32PriorCenterX = (ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2] + ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM])*SAMPLE_SVP_NNIE_HALF;
+                f32PriorCenterY = (ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3] + ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1])*SAMPLE_SVP_NNIE_HALF;
+
+                f32DecodeBoxCenterX = ((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    ((HI_FLOAT)ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth+f32PriorCenterX;
+
+                f32DecodeBoxCenterY = ((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    ((HI_FLOAT)ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+f32PriorCenterY;
+
+                f32DecodeBoxWidth = exp(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+2]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    ((HI_FLOAT)ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+2]/SAMPLE_SVP_NNIE_QUANT_BASE))*f32PriorWidth;
+
+                f32DecodeBoxHeight = exp(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+3]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    ((HI_FLOAT)ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+3]/SAMPLE_SVP_NNIE_QUANT_BASE))*f32PriorHeight;
+
+                //printf("ps32PriorBoxes end***************\n");
+
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterX - f32DecodeBoxWidth * SAMPLE_SVP_NNIE_HALF);
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterY - f32DecodeBoxHeight * SAMPLE_SVP_NNIE_HALF);
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterX + f32DecodeBoxWidth * SAMPLE_SVP_NNIE_HALF);
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterY + f32DecodeBoxHeight * SAMPLE_SVP_NNIE_HALF);
+                /* polygon */
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 4]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 5]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 6]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 7]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 8]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 9]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+10]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+11]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
+            }
         }
     }
+    fprintf(stderr, "detection1 end.\n");
     /********** do NMS for each class *************/
     u32AfterTopK = 0;
     for (i = 0; i < u32ClassNum; i++)
@@ -1800,6 +1912,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +10] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON +10];
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +11] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON +11];
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12] = ps32ConfScores[j*u32ClassNum + i];
+            //fprintf(stderr, "no.%d   conf: %d\n", j*u32ClassNum + i, ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12]);
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +13] = 0;
         }
         s32Ret = SVP_NNIE_NonRecursiveArgQuickSort(ps32SingleProposal, 0, u32PriorNum - 1, pstStack,u32TopK);
@@ -1817,6 +1930,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
                 ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 12] > (HI_S32)u32NmsThresh)
             {
                 ps32DstScore[u32RoiOutCnt] = ps32SingleProposal[j * 14 + 12];
+                //fprintf(stderr, "score: %d\n", ps32DstScore[u32RoiOutCnt]);
                 ps32DstBbox[u32RoiOutCnt * SAMpLE_SVP_NNIE_POLYGON] = ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH];
                 ps32DstBbox[u32RoiOutCnt * SAMpLE_SVP_NNIE_POLYGON + 1] = ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 1];
                 ps32DstBbox[u32RoiOutCnt * SAMpLE_SVP_NNIE_POLYGON + 2] = ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 2];
@@ -1833,6 +1947,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             }
         }
         ps32ClassRoiNum[i] = (HI_S32)u32RoiOutCnt;
+        fprintf(stderr, "no.%d class roi num: %d\n", i, ps32ClassRoiNum[i]);
         u32AfterTopK += u32RoiOutCnt;
     }
 
@@ -1867,6 +1982,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
                 u32KeepCnt++;
             }
             u32Offset = u32Offset + ps32ClassRoiNum[i];
+            fprintf(stderr, "KeepCnt: %d\n", u32KeepCnt);
         }
         s32Ret = SVP_NNIE_NonRecursiveArgQuickSort(ps32AfterTopK, 0, u32KeepCnt - 1, pstStack,u32KeepCnt);
 
@@ -1882,7 +1998,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             ps32DstBbox += (HI_S32)(u32Offset * SAMpLE_SVP_NNIE_POLYGON);
             for (j = 0; j < u32KeepTopK; j++)
             {
-                if (ps32AfterTopK[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 12] == i)
+                if (ps32AfterTopK[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 13] == i)
                 {
                     ps32DstScore[u32RoiOutCnt] = ps32AfterTopK[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 12];
                     ps32DstBbox[u32RoiOutCnt * SAMpLE_SVP_NNIE_POLYGON] = ps32AfterTopK[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH];
@@ -1902,6 +2018,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             }
             ps32ClassRoiNum[i] = (HI_S32)u32RoiOutCnt;
             u32Offset += u32RoiOutCnt;
+            fprintf(stderr, "ps32ClassNum: %d\n", ps32ClassRoiNum[i]);
         }
     }
     return s32Ret;
@@ -3138,12 +3255,57 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     HI_S32 s32Ret = HI_SUCCESS;
     HI_U32 i = 0;
 
-    /*get permut result*/
-    for(i = 0; i < SAMPLE_SVP_NNIE_SSD_REPORT_NODE_NUM; i++)
+    /* 自己实现的CPU卷积 */
+    HI_S32* aps32ConvReport;
+    aps32ConvReport = (HI_S32*)pstNnieParam->astSegData[0].astDst[0].u64VirAddr;
+        
+    Convolution layers[2];
+    Convolution *pLayer;
+    pLayer = &layers[0];
+    int pload = load_param_fp("nnie.param", pLayer);
+    if (pload != 0)
     {
-        aps32PermuteResult[i] = (HI_S32*)pstNnieParam->astSegData[0].astDst[i].u64VirAddr;
+        fprintf(stderr, "load_param_fp error!\n");
+        return -1;
     }
 
+    load_model_fp("nnie.bin", pLayer);
+
+    int FeatureMapW = 48;
+    int FeatureMapH = 48;
+    int FeatureMapC[2] = {240, 40};
+    float *PermuteData[2];
+    size_t sizePermute1 = FeatureMapW*FeatureMapH*FeatureMapC[0]*sizeof(float);
+    size_t sizePermute2 = FeatureMapW*FeatureMapH*FeatureMapC[1]*sizeof(float);
+
+    PermuteData[0] = (float*)malloc(sizePermute1);
+    PermuteData[1] = (float*)malloc(sizePermute2);
+    memset(PermuteData[0], 0, sizePermute1);
+    memset(PermuteData[1], 0, sizePermute2);
+
+    float *output_temp[2];
+    output_temp[0] = (float*)malloc(sizePermute1);
+    memset(output_temp[0], 0, sizePermute1);
+    forward_conv(aps32ConvReport, output_temp[0], &layers[0]);
+    permute(output_temp[0], PermuteData[0], 2, layers[0].w, layers[0].h, layers[0].num_output);
+
+    output_temp[1] = (float*)malloc(sizePermute2);
+    memset(output_temp[0], 0, sizePermute2);
+    forward_conv(aps32ConvReport, output_temp[1], &layers[1]);
+    permute(output_temp[1], PermuteData[1], 2, layers[1].w, layers[1].h, layers[1].num_output);
+
+    free(output_temp[0]);
+    free(output_temp[1]);
+
+    fprintf(stderr, "forward by myself end.\n");
+
+    /*get permut result*/
+    for(i = 2; i < SAMPLE_SVP_NNIE_SSD_REPORT_NODE_NUM; i++)
+    {
+        aps32PermuteResult[i] = (HI_S32*)pstNnieParam->astSegData[0].astDst[i-1].u64VirAddr;
+    }
+
+    fprintf(stderr, "priorbox in.\n");
     /*priorbox*/
     aps32PriorboxOutputData[0] = (HI_S32*)pstSoftwareParam->stPriorBoxTmpBuf.u64VirAddr;
     for (i = 1; i < SAMPLE_SVP_NNIE_SSD_PRIORBOX_NUM; i++)
@@ -3170,9 +3332,10 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
             "Error,SVP_NNIE_Ssd_PriorBoxForward failed!\n");
     }
 
+    fprintf(stderr, "softmax in.\n");
     /*softmax*/
     ps32SoftMaxOutputData = (HI_S32*)pstSoftwareParam->stSoftMaxTmpBuf.u64VirAddr;
-    for(i = 0; i < SAMPLE_SVP_NNIE_SSD_SOFTMAX_NUM; i++)
+    for(i = 1; i < SAMPLE_SVP_NNIE_SSD_SOFTMAX_NUM; i++)
     {
         aps32SoftMaxInputData[i] = aps32PermuteResult[i*2+1];
     }
@@ -3181,11 +3344,12 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
         pstSoftwareParam->au32SoftMaxInChn, pstSoftwareParam->u32ConcatNum,
         pstSoftwareParam->au32ConvStride, pstSoftwareParam->u32SoftMaxOutWidth,
         pstSoftwareParam->u32SoftMaxOutHeight, pstSoftwareParam->u32SoftMaxOutChn,
-        aps32SoftMaxInputData, ps32SoftMaxOutputData);
+        aps32SoftMaxInputData, ps32SoftMaxOutputData, PermuteData);
 
+    fprintf(stderr, "detection in.\n");
     /*detection*/
     ps32DetectionOutTmpBuf = (HI_S32*)pstSoftwareParam->stGetResultTmpBuf.u64VirAddr;
-    for(i = 0; i < SAMPLE_SVP_NNIE_SSD_PRIORBOX_NUM; i++)
+    for(i = 1; i < SAMPLE_SVP_NNIE_SSD_PRIORBOX_NUM; i++)
     {
         aps32DetectionLocData[i] = aps32PermuteResult[i*2];
     }
@@ -3197,7 +3361,7 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
         aps32DetectionLocData, aps32PriorboxOutputData, ps32SoftMaxOutputData,
         ps32DetectionOutTmpBuf, (HI_S32*)pstSoftwareParam->stDstScore.u64VirAddr,
         (HI_S32*)pstSoftwareParam->stDstRoi.u64VirAddr,
-        (HI_S32*)pstSoftwareParam->stClassRoiNum.u64VirAddr);
+        (HI_S32*)pstSoftwareParam->stClassRoiNum.u64VirAddr, PermuteData);
 
     return s32Ret;
 }

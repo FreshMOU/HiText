@@ -271,10 +271,12 @@ static HI_S32 SAMPLE_SVP_NNIE_FillSrcData(SAMPLE_SVP_NNIE_CFG_S* pstNnieCfg,
         SVP_BLOB_TYPE_YVU422SP >= pstNnieParam->astSegData[u32SegIdx].astSrc[u32NodeIdx].enType)
     {
         u32VarSize = sizeof(HI_U8);
+        fprintf(stderr, "use HI_U8.\n");
     }
     else
     {
         u32VarSize = sizeof(HI_U32);
+        fprintf(stderr, "use HI_U32.\n");
     }
 
     /*fill src data*/
@@ -746,6 +748,7 @@ static HI_S32 SAMPLE_SVP_NNIE_Detection_PrintResult(SVP_BLOB_S *pstDstScore,
     for (i = 1; i < u32ClassNum; i++)
     {
         u32ScoreBias = u32RoiNumBias;
+        fprintf(stderr, "ClassRoiNum %d   scoreBias: %d\n", ps32ClassRoiNum[1], u32ScoreBias);
         u32BboxBias = u32RoiNumBias * SAMpLE_SVP_NNIE_POLYGON;
         /*if the confidence score greater than result threshold, the result will be printed*/
         if((HI_FLOAT)ps32Score[u32ScoreBias] / SAMPLE_SVP_NNIE_QUANT_BASE >=
@@ -1824,20 +1827,29 @@ static HI_S32 SAMPLE_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     HI_U64 u64PhyAddr = 0;
     HI_U8* pu8VirAddr = NULL;
 
+    pstSoftWareParam->au32ConvHeight[0]  = 240; 
+    pstSoftWareParam->au32ConvWidth[0]   = 48;
+    pstSoftWareParam->au32ConvChannel[0] = 48;
+    pstSoftWareParam->au32ConvHeight[1]  = 40; 
+    pstSoftWareParam->au32ConvWidth[1]   = 48;
+    pstSoftWareParam->au32ConvChannel[1] = 48;
+    pstSoftWareParam->au32ConvStride[0] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[1]*sizeof(HI_U32))/sizeof(HI_U32);
     /*Set Conv Parameters*/
     /*the SSD sample report resule is after permute operation,
      conv result is (C, H, W), after permute, the report node's
      (C1, H1, W1) is (H, W, C), the stride of report result is aligned according to C dim*/
-    for(i = 0; i < 12; i++)
+    for(i = 2; i < 12; i++)
     {
-        pstSoftWareParam->au32ConvHeight[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i].unShape.stWhc.u32Chn;
-        pstSoftWareParam->au32ConvWidth[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i].unShape.stWhc.u32Height;
-        pstSoftWareParam->au32ConvChannel[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i].unShape.stWhc.u32Width;
+        pstSoftWareParam->au32ConvHeight[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Chn;
+        pstSoftWareParam->au32ConvWidth[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Height;
+        pstSoftWareParam->au32ConvChannel[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Width;
         if(i%2==1)
         {
             pstSoftWareParam->au32ConvStride[i/2] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[i]*sizeof(HI_U32))/sizeof(HI_U32);
         }
+        fprintf(stderr, "H: %d, W: %d, C: %d, convstride: %d\n", pstSoftWareParam->au32ConvHeight[i], pstSoftWareParam->au32ConvWidth[i], pstSoftWareParam->au32ConvChannel[i], pstSoftWareParam->au32ConvStride[i/2]);
     }
+
     // FIXME:
     /*Set PriorBox Parameters*/
     pstSoftWareParam->au32PriorBoxWidth[0] = 48;
@@ -2121,8 +2133,9 @@ void SAMPLE_SVP_NNIE_Ssd(char *SrcFile, char *ModelName)
         "Error,SAMPLE_SVP_NNIE_Ssd_GetResult failed!\n");
     
     gettimeofday(&tv_end, NULL);
-    double total_time = (double) (tv_begin.tv_usec - tv_end.tv_usec) / 1000;
-    SAMPLE_SVP_TRACE_INFO("%.3f ms\n", total_time);
+    double total_time = (double) ((long long)tv_begin.tv_sec - (long long)tv_end.tv_sec);
+    fprintf(stderr, "begin - end: %d\n", (int)tv_begin.tv_sec - (int)tv_end.tv_sec);
+    SAMPLE_SVP_TRACE_INFO("%.3f s\n", total_time);
 
     /*print result, this sample has 21 classes:
      class 0:background     class 1:plane           class 2:bicycle
