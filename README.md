@@ -1,0 +1,7 @@
+# HiText
+
+master下为基础的Textboxes_plusplus，主要修改了SAMPLE_SVP_NNIE_Ssd_ParamInit和SAMPLE_SVP_NNIE_Ssd_GetResult两个函数。
+
+SAMPLE_SVP_NNIE_Ssd_ParamInit中修改了SAMPLE_SVP_NNIE_Ssd_SoftwareInit中的各项参数。
+
+SAMPLE_SVP_NNIE_Ssd_GetResult中则包含了priobox、softmax和detectionout的计算，针对Textboxes_plusplus都一一修改。
