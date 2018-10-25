@@ -2121,7 +2121,7 @@ void SAMPLE_SVP_NNIE_Ssd(char *SrcFile, char *ModelName)
         "Error,SAMPLE_SVP_NNIE_Ssd_GetResult failed!\n");
     
     gettimeofday(&tv_end, NULL);
-    double total_time = (double) (tv_begin.tv_usec - tv_end.tv_usec) / 1000;
+    double total_time = (double)(tv_begin.tv_sec - tv_end.tv_sec)*1000 + (double) (tv_begin.tv_usec - tv_end.tv_usec) / 1000;
     SAMPLE_SVP_TRACE_INFO("%.3f ms\n", total_time);
 
     /*print result, this sample has 21 classes:

@@ -1629,15 +1629,16 @@ static HI_S32 SVP_NNIE_Ssd_SoftmaxForward(HI_U32 u32SoftMaxInHeight,
     for (u32ConcatCnt = 0; u32ConcatCnt < u32ConcatNum; u32ConcatCnt++)
     {
         ps32InputData = aps32SoftMaxInputData[u32ConcatCnt];
-        u32Stride = au32ConvStride[u32ConcatCnt];       //48 32 16 16 16 16
+        u32Stride = au32ConvStride[u32ConcatCnt];       //40, 40, 40, 40, 40, 40 (num_output)
         u32InputChannel = au32SoftMaxInChn[u32ConcatCnt];   // 92160
         u32OuterNum = u32InputChannel / u32SoftMaxInHeight; // 48080
         u32InnerNum = u32SoftMaxInHeight;       // 2
-        u32Skip = u32Stride / u32InnerNum;      //Skip = 24 16 8 8 8 8, Left = 0
+        u32Skip = u32Stride / u32InnerNum;      //Skip = 20, 20, 20, 20, 20, 20, Left = 0
         u32Left = u32Stride % u32InnerNum;        // do softmax
         for (i = 0; i < u32OuterNum; i++)
         {
             s32Ret = SVP_NNIE_SSD_SoftMax(ps32InputData, (HI_S32)u32InnerNum,ps32OutputTmp);
+            //fprintf(stderr, "no.%d --- %d   permutedata : %d\n", u32ConcatCnt, i, ps32InputData[1]);
             if ((i + 1) % u32Skip == 0)
             {
                 ps32InputData += u32Left;
@@ -1799,7 +1800,12 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH + 9] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON + 9];
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +10] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON +10];
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +11] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON +11];
-            ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12] = ps32ConfScores[j*u32ClassNum + i];
+            if (j*u32ClassNum + i < 92160 || j*u32ClassNum + i > 115200)
+                ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12] = ps32ConfScores[j*u32ClassNum + i];
+            else
+                ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12] = 0;
+            //fprintf(stderr, "no.%d  conf: %d\n", j*u32ClassNum + i, ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12]);
+            
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +13] = 0;
         }
         s32Ret = SVP_NNIE_NonRecursiveArgQuickSort(ps32SingleProposal, 0, u32PriorNum - 1, pstStack,u32TopK);
@@ -1834,12 +1840,14 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
         }
         ps32ClassRoiNum[i] = (HI_S32)u32RoiOutCnt;
         u32AfterTopK += u32RoiOutCnt;
+        fprintf(stderr, "AfterTopK: %d\n", u32AfterTopK);
     }
 
     u32KeepCnt = 0;
     u32Offset = 0;
     if (u32AfterTopK > u32KeepTopK)
     {
+        //fprintf(stderr, "AfterTopK > KeepTopK\n");
         u32Offset = ps32ClassRoiNum[0];
         for (i = 1; i < u32ClassNum; i++)
         {
