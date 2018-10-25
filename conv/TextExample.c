@@ -46,7 +46,7 @@ int load_param_fp(const char *protopath, Convolution *layers)
                 continue;
             }
 
-            int lr = load_param_conv(layers+layer_idx, layer_idx, w[layer_idx], h[layer_idx], c[layer_idx]);
+            int lr = load_param_conv(layers+layer_idx, layer_idx, w[layer_idx+2], h[layer_idx+2], c[layer_idx+2]);
             if (lr != 0)
             {
                 fprintf(stderr, "layer load_param failed\n");

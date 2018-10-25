@@ -2,3 +2,6 @@ sample_nnie_software/sample_svp_nnie_software.o
 sample/sample_nnie.o
 sample_nnie_main.o
 .DS_Store
+textboxes_report1
+conv/TextExample.o
+*.o
