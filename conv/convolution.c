@@ -54,9 +54,10 @@ void copy_make_border(const float *src, float *dst, int top, int bottom, int lef
     }
 
     int step = w * h;
+    int instep = conv->w * conv->h;
     for (int i=0; i<c; i++)
     {
-        const float* ptr = src;//.data;
+        const float* ptr = src + instep * i;//.data;
         float* outptr = dst + step * i;//.data;
 
         int y = 0;
@@ -272,6 +273,7 @@ void permute(float *src, float *dst, int type, int w, int h, int channel)
     // 0 (W,H,C) -> (C,W,H) (0,1,2)->(2,0,1)
     // 1 (C,H,W) -> (W,H,C) (0,1,2)->(2,1,0)
     // 2 (W,H,C) -> (H,W,C) (0,1,2)->(1,0,2)
+    // 3 (W,H,C) -> (W,C,H) (0,1,2)->(2,0,1)
     if (type == 0)
     {
         int step = channel*h;
@@ -328,6 +330,27 @@ void permute(float *src, float *dst, int type, int w, int h, int channel)
                 for (int j = 0; j < h; j++)
                 {
                     outptr[h*i + j] = ptr[j*w + i];
+                }
+            }
+        }
+    }
+    else if (type == 3)
+    {
+        int step = w*h;
+        int outstep = w*channel;
+
+        // #pragma omp parallel for
+        for (int q=0; q<h; q++)
+        {
+            float* outptr = dst + q*outstep;
+
+            for (int i = 0; i < channel; i++)
+            {
+                const float* ptr = src + i*step + w*q;
+
+                for (int j = 0; j < w; j++)
+                {
+                    outptr[i*w + j] = ptr[j];
                 }
             }
         }

@@ -5,3 +5,4 @@ sample_nnie_main.o
 textboxes_report1
 conv/TextExample.o
 *.o
+*.o

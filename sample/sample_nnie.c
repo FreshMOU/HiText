@@ -1827,19 +1827,32 @@ static HI_S32 SAMPLE_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     HI_U64 u64PhyAddr = 0;
     HI_U8* pu8VirAddr = NULL;
 
-    pstSoftWareParam->au32ConvHeight[0]  = 240; 
-    pstSoftWareParam->au32ConvWidth[0]   = 48;
-    pstSoftWareParam->au32ConvChannel[0] = 48;
-    pstSoftWareParam->au32ConvHeight[1]  = 40; 
-    pstSoftWareParam->au32ConvWidth[1]   = 48;
-    pstSoftWareParam->au32ConvChannel[1] = 48;
-    pstSoftWareParam->au32ConvStride[0] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[1]*sizeof(HI_U32))/sizeof(HI_U32);
     /*Set Conv Parameters*/
     /*the SSD sample report resule is after permute operation,
      conv result is (C, H, W), after permute, the report node's
      (C1, H1, W1) is (H, W, C), the stride of report result is aligned according to C dim*/
-    for(i = 2; i < 12; i++)
+    for(i = 2; i < 4; i++)
     {
+        pstSoftWareParam->au32ConvHeight[i-2] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Chn;
+        pstSoftWareParam->au32ConvWidth[i-2] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Height;
+        pstSoftWareParam->au32ConvChannel[i-2] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Width;
+        if(i%2==1)
+        {
+            pstSoftWareParam->au32ConvStride[i/2-1] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[i]*sizeof(HI_U32))/sizeof(HI_U32);
+        }
+    }
+
+    pstSoftWareParam->au32ConvHeight[2]  = 24; 
+    pstSoftWareParam->au32ConvWidth[2]   = 24;
+    pstSoftWareParam->au32ConvChannel[2] = 240;
+    pstSoftWareParam->au32ConvHeight[3]  = 24; 
+    pstSoftWareParam->au32ConvWidth[3]   = 24;
+    pstSoftWareParam->au32ConvChannel[3] = 40;
+    pstSoftWareParam->au32ConvStride[1] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[3]*sizeof(HI_U32))/sizeof(HI_U32);
+
+    for(i = 4; i < 12; i++)
+    {
+        //fprintf(stderr, "u32Chn : %d\n", pstNnieParam->pstModel->astSeg[0].astDstNode[i].unShape.stWhc.u32Chn);
         pstSoftWareParam->au32ConvHeight[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Chn;
         pstSoftWareParam->au32ConvWidth[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Height;
         pstSoftWareParam->au32ConvChannel[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Width;
@@ -1847,7 +1860,7 @@ static HI_S32 SAMPLE_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
         {
             pstSoftWareParam->au32ConvStride[i/2] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[i]*sizeof(HI_U32))/sizeof(HI_U32);
         }
-        fprintf(stderr, "H: %d, W: %d, C: %d, convstride: %d\n", pstSoftWareParam->au32ConvHeight[i], pstSoftWareParam->au32ConvWidth[i], pstSoftWareParam->au32ConvChannel[i], pstSoftWareParam->au32ConvStride[i/2]);
+        //fprintf(stderr, "H: %d, W: %d, C: %d, convstride: %d\n", pstSoftWareParam->au32ConvHeight[i], pstSoftWareParam->au32ConvWidth[i], pstSoftWareParam->au32ConvChannel[i], pstSoftWareParam->au32ConvStride[i/2]);
     }
 
     // FIXME:

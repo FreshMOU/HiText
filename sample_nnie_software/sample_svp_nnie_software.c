@@ -1912,7 +1912,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +10] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON +10];
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +11] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON +11];
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12] = ps32ConfScores[j*u32ClassNum + i];
-            //fprintf(stderr, "no.%d   conf: %d\n", j*u32ClassNum + i, ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12]);
+            // fprintf(stderr, "class%d --- no.%d   conf: %d\n", i, j*u32ClassNum + i, ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12]);
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +13] = 0;
         }
         s32Ret = SVP_NNIE_NonRecursiveArgQuickSort(ps32SingleProposal, 0, u32PriorNum - 1, pstStack,u32TopK);
@@ -3257,7 +3257,7 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
 
     /* 自己实现的CPU卷积 */
     HI_S32* aps32ConvReport;
-    aps32ConvReport = (HI_S32*)pstNnieParam->astSegData[0].astDst[2].u64VirAddr;    //fc7
+    aps32ConvReport = (HI_S32*)pstNnieParam->astSegData[0].astDst[0].u64VirAddr;    //fc7
         
     Convolution layers[2];
     Convolution *pLayer;
@@ -3302,7 +3302,7 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     /*get permut result*/
     for(i = 0; i < 2; i++)
     {
-        aps32PermuteResult[i] = (HI_S32*)pstNnieParam->astSegData[0].astDst[i].u64VirAddr;
+        aps32PermuteResult[i] = (HI_S32*)pstNnieParam->astSegData[0].astDst[i+1].u64VirAddr;
     }
 
     for(i = 4; i < SAMPLE_SVP_NNIE_SSD_REPORT_NODE_NUM; i++)
