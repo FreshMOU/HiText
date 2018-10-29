@@ -2,24 +2,31 @@
 #include <string.h>
 #include <math.h>
 
-void permuteInt(const int *src, int *dst, int w, int h, int channel)
+void permuteInt(const int *src, int *dst, int w, int h, int channel, int type)
 {
-    int step = channel*h;
-    int outstep = w*h;
+    if (type == 0)
+    {       
+        int step = channel*h;
+        int outstep = w*h;
 
-    for (int q=0; q<channel; q++)
-    {
-        int* outptr = dst + q * outstep;
-
-        for (int i = 0; i < h; i++)
+        for (int q=0; q<channel; q++)
         {
-            for (int j = 0; j < w; j++)
-            {
-                const int* ptr = src + j * step;
+            int* outptr = dst + q * outstep;
 
-                outptr[i*w + j] = ptr[i*channel + q];
+            for (int i = 0; i < h; i++)
+            {
+                for (int j = 0; j < w; j++)
+                {
+                    const int* ptr = src + j * step;
+
+                    outptr[i*w + j] = ptr[i*channel + q];
+                }
             }
         }
+    }
+    else if (type == 1)
+    {
+        memcpy(dst, src, w*h*channel*sizeof(int));
     }
 }
 
@@ -166,7 +173,7 @@ int forward_conv(const int *bottom_blob_in, float *top_blob, Convolution *conv)
 {
     int *bottom_blob;
     bottom_blob = (int*)malloc(conv->w*conv->h*conv->c*sizeof(int));
-    permuteInt(bottom_blob_in, bottom_blob, conv->w, conv->h, conv->c);
+    permuteInt(bottom_blob_in, bottom_blob, conv->w, conv->h, conv->c, 0);
 
     // convolv with NxN kernel
     // value = value + bias
@@ -189,6 +196,109 @@ int forward_conv(const int *bottom_blob_in, float *top_blob, Convolution *conv)
     memset(bottom_blob_float, 0, conv->w*conv->h*channel*sizeof(float));
     Int2Float(bottom_blob, bottom_blob_float, conv->w*conv->h*channel);
     copy_make_border(bottom_blob_float, bottom_blob_bordered, conv->pad_h, conv->pad_h, conv->pad_w, conv->pad_w, channel, 0.f, conv);
+
+
+    int outw = (w - kernel_extent_w) / conv->stride_w + 1;
+    int outh = (h - kernel_extent_h) / conv->stride_h + 1;
+    //fprintf(stderr, "w: %d, h: %d, ker_w: %d, ker_h: %d, stride_w: %d, stride_h: %d\n", w,h,kernel_extent_w, kernel_extent_h, stride_w, stride_h);
+
+    //top_blob提前分配好内存，就不在forward中分配了。
+    // top_blob = (float*)malloc(outw * outh * num_output * sizeof(float));
+    // memset(top_blob, 0, outw * outh * num_output * sizeof(float));
+
+    const int maxk = conv->kernel_w * conv->kernel_h;
+
+    // kernel offsets
+    int* space_ofs;
+    space_ofs = (int*)malloc(maxk*sizeof(int));
+    memset(space_ofs, 0, maxk*sizeof(int));
+    {
+        int p1 = 0;
+        int p2 = 0;
+        int gap = w * conv->dilation_h - conv->kernel_w * conv->dilation_w;
+        for (int i = 0; i < conv->kernel_h; i++)
+        {
+            for (int j = 0; j < conv->kernel_w; j++)
+            {
+                space_ofs[p1] = p2;
+                p1++;
+                p2 += conv->dilation_w;
+            }
+            p2 += gap;
+        }
+    }
+
+    int step = w * h;
+    int outstep = outw * outh;
+    // num_output
+    // #pragma omp parallel for
+    for (int p=0; p<conv->num_output; p++)
+    {
+        float* outptr = top_blob + outstep * p;
+
+        for (int i = 0; i < outh; i++)
+        {
+            for (int j = 0; j < outw; j++)
+            {
+                float sum = 0.f;
+
+                if (conv->bias_term)
+                    sum = conv->bias_data[p];
+
+
+                const float* kptr = (const float*)conv->weight_data + maxk * channel * p;
+
+                // channels
+                for (int q=0; q<channel; q++)
+                {
+                    const float* m = bottom_blob_bordered + step * q;
+                    const float* sptr = m + i*conv->stride_h * w + j*conv->stride_w;
+
+                    for (int k = 0; k < maxk; k++) // 29.23
+                    {
+                        float val = sptr[ space_ofs[k] ]; // 20.72
+                        float w = kptr[k];
+                        sum += val * w; // 41.45
+                    }
+
+                    kptr += maxk;
+                }
+
+                outptr[j] = sum;
+            }
+
+            outptr += outw;
+        }
+    }
+    fprintf(stderr, "forward end.\n");
+
+    return 0;
+}
+
+int forward_conv_float(float *bottom_blob_in, float *top_blob, Convolution *conv)
+{
+    float *bottom_blob;
+    bottom_blob = (float*)malloc(conv->w*conv->h*conv->c*sizeof(float));
+    permute(bottom_blob_in, bottom_blob, 1, conv->w, conv->h, conv->c);
+
+    // convolv with NxN kernel
+    // value = value + bias
+
+    //fprintf(stderr, "\nw: %d, h: %d, c:%d , kernel_w: %d, kernel_h: %d\n", bottom_blob.w, bottom_blob.h, bottom_blob.c, kernel_w, kernel_h);
+
+    //fprintf(stderr, "Convolution input %d x %d  pad = %d %d  ksize=%d %d  stride=%d %d\n", w, h, pad_w, pad_h, kernel_w, kernel_h, stride_w, stride_h);
+
+    const int kernel_extent_w = conv->dilation_w * (conv->kernel_w - 1) + 1;
+    const int kernel_extent_h = conv->dilation_h * (conv->kernel_h - 1) + 1;
+
+    int w = conv->w + conv->pad_w + conv->pad_w;
+    int h = conv->h + conv->pad_h + conv->pad_h;
+    int channel = conv->c;
+    float *bottom_blob_bordered;
+    bottom_blob_bordered = (float*)malloc(w*h*channel*sizeof(float));
+    memset(bottom_blob_bordered, 0, w*h*channel*sizeof(float));
+
+    copy_make_border(bottom_blob, bottom_blob_bordered, conv->pad_h, conv->pad_h, conv->pad_w, conv->pad_w, channel, 0.f, conv);
 
 
     int outw = (w - kernel_extent_w) / conv->stride_w + 1;
@@ -299,17 +409,17 @@ void permute(float *src, float *dst, int type, int w, int h, int channel)
         int step = channel*h;
         int outstep = w*h;
 
-        for (int q=0; q<h; q++)
+        for (int q=0; q<channel; q++)
         {
             float* outptr = dst + q * outstep;
 
-            for (int i = 0; i < channel; i++)
+            for (int i = 0; i < h; i++)
             {
                 for (int j = 0; j < w; j++)
                 {
-                    const float* ptr = src + j * step + channel * q;
+                    const float* ptr = src + j * step;
 
-                    outptr[i*channel + j] = ptr[i];
+                    outptr[i*w + j] = ptr[i*channel + q];
                 }
             }
         }

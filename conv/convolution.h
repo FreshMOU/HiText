@@ -33,6 +33,8 @@ int load_model_conv(FILE *binfp, Convolution *conv);
 
 int forward_conv(const int *bottom_blob, float *top_blob, Convolution *conv);
 
+int forward_conv_float(float *bottom_blob_in, float *top_blob, Convolution *conv);
+
 void permute(float *src, float *dst, int type, int w, int h, int channel);
 
 int Float2Int(float *input, int *output, int size);
