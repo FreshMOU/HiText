@@ -1,3 +1,3 @@
 # HiText
 
-conv4_3_CPU分支存的是用CPU代码实现conv4_3_loc和conv4_3_conf。
+conv4_3_CPU分支存的是用CPU代码实现fc7_loc和fc7_conf。
