@@ -169,11 +169,11 @@ int load_model_conv(FILE *binfp, Convolution *conv)
     return 0;
 }
 
-int forward_conv(const int *bottom_blob_in, float *top_blob, Convolution *conv)
+int forward_conv(const int *bottom_blob, float *top_blob, Convolution *conv)
 {
-    int *bottom_blob;
-    bottom_blob = (int*)malloc(conv->w*conv->h*conv->c*sizeof(int));
-    permuteInt(bottom_blob_in, bottom_blob, conv->w, conv->h, conv->c, 0);
+    // int *bottom_blob;
+    // bottom_blob = (int*)malloc(conv->w*conv->h*conv->c*sizeof(int));
+    // permuteInt(bottom_blob_in, bottom_blob, conv->w, conv->h, conv->c, 0);
 
     // convolv with NxN kernel
     // value = value + bias
@@ -275,11 +275,11 @@ int forward_conv(const int *bottom_blob_in, float *top_blob, Convolution *conv)
     return 0;
 }
 
-int forward_conv_float(float *bottom_blob_in, float *top_blob, Convolution *conv)
+int forward_conv_float(float *bottom_blob, float *top_blob, Convolution *conv)
 {
-    float *bottom_blob;
-    bottom_blob = (float*)malloc(conv->w*conv->h*conv->c*sizeof(float));
-    permute(bottom_blob_in, bottom_blob, 1, conv->w, conv->h, conv->c);
+    //float *bottom_blob;
+    //bottom_blob = (float*)malloc(conv->w*conv->h*conv->c*sizeof(float));
+    //permute(bottom_blob_in, bottom_blob, 1, conv->w, conv->h, conv->c);
 
     // convolv with NxN kernel
     // value = value + bias
@@ -386,20 +386,19 @@ void permute(float *src, float *dst, int type, int w, int h, int channel)
     // 3 (W,H,C) -> (W,C,H) (0,1,2)->(2,0,1)
     if (type == 0)
     {
-        int step = channel*h;
-        int outstep = w*h;
-
-        for (int q=0; q<channel; q++)
+        int step = w*h;
+        int outstep = channel*w;
+        for (int q=0; q<h; q++)
         {
             float* outptr = dst + q * outstep;
 
-            for (int i = 0; i < h; i++)
+            for (int i = 0; i < w; i++)
             {
-                for (int j = 0; j < w; j++)
+                for (int j = 0; j < channel; j++)
                 {
-                    const float* ptr = src + j * step;
+                    const float* ptr = src + j * step + w * q;
 
-                    outptr[i*w + j] = ptr[i*channel + q];
+                    outptr[i*channel + j] = ptr[i];
                 }
             }
         }
@@ -463,6 +462,14 @@ void permute(float *src, float *dst, int type, int w, int h, int channel)
                     outptr[i*w + j] = ptr[j];
                 }
             }
+        }
+    }
+
+    if (w*h*channel == 552960)
+    {
+        for (int i=0; i<552960; i++)
+        {
+            fprintf(stderr, "i %d --- out %f\n", i, dst[i]);
         }
     }
     

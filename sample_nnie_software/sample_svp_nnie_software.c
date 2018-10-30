@@ -1912,7 +1912,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +10] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON +10];
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +11] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON +11];
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12] = ps32ConfScores[j*u32ClassNum + i];
-            if (j*u32ClassNum + i < 92160 || j*u32ClassNum + i > 115200)
+            if (j*u32ClassNum + i < 92160)// || j*u32ClassNum + i > 115200)
                 ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12] = ps32ConfScores[j*u32ClassNum + i];
             else
                 ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH +12] = 0;
@@ -3267,17 +3267,17 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     HI_U32 i = 0;
 
     /* 自己实现的CPU卷积 */
-    HI_S32* aps32ConvReport_before;
-    aps32ConvReport_before = (HI_S32*)pstNnieParam->astSegData[0].astDst[0].u64VirAddr;    //fc7
+    HI_S32* aps32ConvReport;
+    aps32ConvReport = (HI_S32*)pstNnieParam->astSegData[0].astDst[0].u64VirAddr;    //fc7
 
-    float* aps32ConvReport;
-    aps32ConvReport = (float*)malloc(1179648*sizeof(float));
-    for (i=0; i < 1179648; i++)
-    {
-        aps32ConvReport[i] = (float)aps32ConvReport_before[i] / 4096;
-        // if ( aps32ConvReport[i] != 0)
-        //     fprintf(stderr, "i : %d -- %f\n", i, aps32ConvReport[i]);
-    }
+    // float* aps32ConvReport;
+    // aps32ConvReport = (float*)malloc(1179648*sizeof(float));
+    // for (i=0; i < 1179648; i++)
+    // {
+    //     aps32ConvReport[i] = (float)aps32ConvReport_before[i] / 4096;
+    //     // if ( aps32ConvReport[i] != 0)
+    //     //     fprintf(stderr, "i : %d -- %f\n", i, aps32ConvReport[i]);
+    // }
         
     Convolution layers[2];
     Convolution *pLayer;
@@ -3306,17 +3306,24 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     float *output_temp[2];
     output_temp[0] = (float*)malloc(sizePermute1);
     memset(output_temp[0], 0, sizePermute1);
-    forward_conv_float(aps32ConvReport, output_temp[0], &layers[0]);
-    permute(output_temp[0], PermuteData[0], 2, layers[0].w, layers[0].h, layers[0].num_output);
+    forward_conv(aps32ConvReport, output_temp[0], &layers[0]);
+    permute(output_temp[0], PermuteData[0], 0, layers[0].w, layers[0].h, layers[0].num_output);
 
     output_temp[1] = (float*)malloc(sizePermute2);
     memset(output_temp[0], 0, sizePermute2);
-    forward_conv_float(aps32ConvReport, output_temp[1], &layers[1]);
-    permute(output_temp[1], PermuteData[1], 2, layers[1].w, layers[1].h, layers[1].num_output);
+    forward_conv(aps32ConvReport, output_temp[1], &layers[1]);
+    permute(output_temp[1], PermuteData[1], 0, layers[1].w, layers[1].h, layers[1].num_output);
 
     // for ( i=0; i<92160; i++)
     // {
-    //     fprintf(stderr, "i %d ---- output: %f\n", i, output_temp[1][i]);
+    //     //fprintf(stderr, "i %d ---- output: %f\n", i, PermuteData[1][i]/4096);
+    //     //PermuteData[1][i] = PermuteData[1][i]/4096;
+    // }
+
+    // for (i=0; i<552960; i++)
+    // {
+    //     fprintf(stderr, "i %d ---- output: %f\n", i, PermuteData[0][i]/4096);
+        
     // }
 
     free(output_temp[0]);
