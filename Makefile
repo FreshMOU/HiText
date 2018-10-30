@@ -4,7 +4,7 @@ include $(PWD)/../Makefile.param
 CFLAGS += -I$(PWD)/sample
 CFLAGS += -I$(PWD)/sample_nnie_software
 CFLAGS += -I$(PWD)/conv
-CFLAGS += -O3
+CFLAGS += -O3 -fopenmp
 
 SRCS := $(wildcard *.c)
 SRCS += $(wildcard ./sample/*.c)

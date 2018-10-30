@@ -55,6 +55,7 @@ void copy_make_border(const float *src, float *dst, int top, int bottom, int lef
 
     int step = w * h;
     int instep = conv->w * conv->h;
+    #pragma omp parallel for
     for (int i=0; i<c; i++)
     {
         const float* ptr = src + instep * i;//.data;
@@ -128,7 +129,7 @@ int load_param_conv(Convolution *conv, int layer_idx, int w, int h, int c)
     conv->h = h;
     conv->c = c;
 
-    fprintf(stderr, "Convolution: %d %d %d\n", conv->num_output, conv->kernel_w, conv->stride_w);
+    //fprintf(stderr, "Convolution: %d %d %d\n", conv->num_output, conv->kernel_w, conv->stride_w);
 
     return 0;
 }
@@ -157,7 +158,7 @@ int load_model_conv(FILE *binfp, Convolution *conv)
             return -100;
         }
     }
-    fprintf(stderr, "bias: %f\n", conv->bias_data[0]);
+    //fprintf(stderr, "bias: %f\n", conv->bias_data[0]);
 
     return 0;
 }
@@ -224,7 +225,7 @@ int forward_conv(const int *bottom_blob, float *top_blob, Convolution *conv)
     int step = w * h;
     int outstep = outw * outh;
     // num_output
-    // #pragma omp parallel for
+    #pragma omp parallel for
     for (int p=0; p<conv->num_output; p++)
     {
         float* outptr = top_blob + outstep * p;
@@ -278,8 +279,10 @@ void permute(float *src, float *dst, int type, int w, int h, int channel)
     {
         int step = w*h;
         int outstep = channel*w;
+        #pragma omp parallel for
         for (int q=0; q<h; q++)
         {
+            //fprintf(stderr, "q: %d\n", q);
             float* outptr = dst + q * outstep;
 
             for (int i = 0; i < w; i++)

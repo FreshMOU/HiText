@@ -271,12 +271,12 @@ static HI_S32 SAMPLE_SVP_NNIE_FillSrcData(SAMPLE_SVP_NNIE_CFG_S* pstNnieCfg,
         SVP_BLOB_TYPE_YVU422SP >= pstNnieParam->astSegData[u32SegIdx].astSrc[u32NodeIdx].enType)
     {
         u32VarSize = sizeof(HI_U8);
-        fprintf(stderr, "use HI_U8.\n");
+        //fprintf(stderr, "use HI_U8.\n");
     }
     else
     {
         u32VarSize = sizeof(HI_U32);
-        fprintf(stderr, "use HI_U32.\n");
+        //fprintf(stderr, "use HI_U32.\n");
     }
 
     /*fill src data*/
@@ -2146,9 +2146,9 @@ void SAMPLE_SVP_NNIE_Ssd(char *SrcFile, char *ModelName)
         "Error,SAMPLE_SVP_NNIE_Ssd_GetResult failed!\n");
     
     gettimeofday(&tv_end, NULL);
-    double total_time = (double) ((long long)tv_begin.tv_sec - (long long)tv_end.tv_sec);
-    fprintf(stderr, "begin - end: %d\n", (int)tv_begin.tv_sec - (int)tv_end.tv_sec);
-    SAMPLE_SVP_TRACE_INFO("%.3f s\n", total_time);
+    double total_time = (double) (tv_begin.tv_sec - tv_end.tv_sec)*1000 + (double)(tv_begin.tv_usec - tv_end.tv_usec)/1000;
+    //fprintf(stderr, "begin - end: %d\n", (int)tv_begin.tv_sec - (int)tv_end.tv_sec);
+    SAMPLE_SVP_TRACE_INFO("%.5f ms\n", total_time);
 
     /*print result, this sample has 21 classes:
      class 0:background     class 1:plane           class 2:bicycle

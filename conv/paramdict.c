@@ -33,7 +33,7 @@ int load_param_dict(FILE* fp, int layer_idx)
         params[layer_idx][i].i = 0;
     }
     
-    fprintf(stderr, "load_param_dict\n");
+    //fprintf(stderr, "load_param_dict\n");
     // parse each key=value pair
     int id = 0;
     while (fscanf(fp, "%d=", &id) == 1)

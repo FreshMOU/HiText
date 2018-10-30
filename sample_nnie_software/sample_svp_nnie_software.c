@@ -1699,7 +1699,7 @@ static HI_S32 SVP_NNIE_Ssd_SoftmaxForward(HI_U32 u32SoftMaxInHeight,
         }
     }
 
-    fprintf(stderr, "OutputCount: %d\n", OutputCount);
+    //fprintf(stderr, "OutputCount: %d\n", OutputCount);
     return s32Ret;
 }
 
@@ -1786,6 +1786,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
     u32SrcIdx = 0;
     for (i = 0; i < u32ConcatNum; i++)
     {
+        fprintf(stderr, "u32Idx:  %d\n", u32SrcIdx);
         if ( i == 1 )
         {
             ps32LocPredsFloat = PermuteData[0];
@@ -1897,6 +1898,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
     u32AfterTopK = 0;
     for (i = 0; i < u32ClassNum; i++)
     {
+        #pragma omp parallel for
         for (j = 0; j < u32PriorNum; j++)
         {
             ps32SingleProposal[j * SAMPLE_SVP_NNIE_PROPOSAL_WIDTH] = ps32AllDecodeBoxes[j * SAMpLE_SVP_NNIE_POLYGON];
@@ -1947,7 +1949,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             }
         }
         ps32ClassRoiNum[i] = (HI_S32)u32RoiOutCnt;
-        fprintf(stderr, "no.%d class roi num: %d\n", i, ps32ClassRoiNum[i]);
+        //fprintf(stderr, "no.%d class roi num: %d\n", i, ps32ClassRoiNum[i]);
         u32AfterTopK += u32RoiOutCnt;
     }
 
@@ -1982,7 +1984,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
                 u32KeepCnt++;
             }
             u32Offset = u32Offset + ps32ClassRoiNum[i];
-            fprintf(stderr, "KeepCnt: %d\n", u32KeepCnt);
+            //fprintf(stderr, "KeepCnt: %d\n", u32KeepCnt);
         }
         s32Ret = SVP_NNIE_NonRecursiveArgQuickSort(ps32AfterTopK, 0, u32KeepCnt - 1, pstStack,u32KeepCnt);
 
@@ -2018,7 +2020,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             }
             ps32ClassRoiNum[i] = (HI_S32)u32RoiOutCnt;
             u32Offset += u32RoiOutCnt;
-            fprintf(stderr, "ps32ClassNum: %d\n", ps32ClassRoiNum[i]);
+            //fprintf(stderr, "ps32ClassNum: %d\n", ps32ClassRoiNum[i]);
         }
     }
     return s32Ret;
