@@ -748,7 +748,7 @@ static HI_S32 SAMPLE_SVP_NNIE_Detection_PrintResult(SVP_BLOB_S *pstDstScore,
     for (i = 1; i < u32ClassNum; i++)
     {
         u32ScoreBias = u32RoiNumBias;
-        fprintf(stderr, "ClassRoiNum %d   scoreBias: %d\n", ps32ClassRoiNum[1], u32ScoreBias);
+        //fprintf(stderr, "ClassRoiNum %d   scoreBias: %d\n", ps32ClassRoiNum[1], u32ScoreBias);
         u32BboxBias = u32RoiNumBias * SAMpLE_SVP_NNIE_POLYGON;
         /*if the confidence score greater than result threshold, the result will be printed*/
         if((HI_FLOAT)ps32Score[u32ScoreBias] / SAMPLE_SVP_NNIE_QUANT_BASE >=
@@ -2146,7 +2146,7 @@ void SAMPLE_SVP_NNIE_Ssd(char *SrcFile, char *ModelName)
         "Error,SAMPLE_SVP_NNIE_Ssd_GetResult failed!\n");
     
     gettimeofday(&tv_end, NULL);
-    double total_time = (double) (tv_begin.tv_sec - tv_end.tv_sec)*1000 + (double)(tv_begin.tv_usec - tv_end.tv_usec)/1000;
+    double total_time = (double) (tv_end.tv_sec - tv_begin.tv_sec)*1000 + (double)(tv_end.tv_usec - tv_begin.tv_usec)/1000;
     //fprintf(stderr, "begin - end: %d\n", (int)tv_begin.tv_sec - (int)tv_end.tv_sec);
     SAMPLE_SVP_TRACE_INFO("%.5f ms\n", total_time);
 

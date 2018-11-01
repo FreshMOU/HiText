@@ -42,14 +42,14 @@ int Float2Int(float *input, int *output, int size)
 }
 
 // v即为填充的pad，默认为0
-void copy_make_border(const float *src, float *dst, int top, int bottom, int left, int right, int c, float v, Convolution *conv)
+void copy_make_border(const int *src, int *dst, int top, int bottom, int left, int right, int c, float v, Convolution *conv)
 {
     int w = conv->w + left + right;
     int h = conv->h + top + bottom;
 
     if (w == conv->w && h == conv->h)
     {
-        memcpy(dst, src, w*h*c*sizeof(float));
+        memcpy(dst, src, w*h*c*sizeof(int));
         return;
     }
 
@@ -58,8 +58,8 @@ void copy_make_border(const float *src, float *dst, int top, int bottom, int lef
     #pragma omp parallel for
     for (int i=0; i<c; i++)
     {
-        const float* ptr = src + instep * i;//.data;
-        float* outptr = dst + step * i;//.data;
+        const int* ptr = src + instep * i;//.data;
+        int* outptr = dst + step * i;//.data;
 
         int y = 0;
         // fill top
@@ -89,7 +89,7 @@ void copy_make_border(const float *src, float *dst, int top, int bottom, int lef
             }
             else
             {
-                memcpy(outptr + left, ptr, conv->w * sizeof(float));
+                memcpy(outptr + left, ptr, conv->w * sizeof(int));
                 x += conv->w;
             }
             for (; x < w; x++)
@@ -182,14 +182,10 @@ int forward_conv(const int *bottom_blob, float *top_blob, Convolution *conv)
     int w = conv->w + conv->pad_w + conv->pad_w;
     int h = conv->h + conv->pad_h + conv->pad_h;
     int channel = conv->c;
-    float *bottom_blob_bordered;
-    float *bottom_blob_float;
-    bottom_blob_bordered = (float*)malloc(w*h*channel*sizeof(float));
-    bottom_blob_float = (float*)malloc(conv->w*conv->h*channel*sizeof(float));
-    memset(bottom_blob_bordered, 0, w*h*channel*sizeof(float));
-    memset(bottom_blob_float, 0, conv->w*conv->h*channel*sizeof(float));
-    Int2Float(bottom_blob, bottom_blob_float, conv->w*conv->h*channel);
-    copy_make_border(bottom_blob_float, bottom_blob_bordered, conv->pad_h, conv->pad_h, conv->pad_w, conv->pad_w, channel, 0.f, conv);
+    int *bottom_blob_bordered;
+    bottom_blob_bordered = (int*)malloc(w*h*channel*sizeof(int));
+    memset(bottom_blob_bordered, 0, w*h*channel*sizeof(int));
+    copy_make_border(bottom_blob, bottom_blob_bordered, conv->pad_h, conv->pad_h, conv->pad_w, conv->pad_w, channel, 0.f, conv);
 
 
     int outw = (w - kernel_extent_w) / conv->stride_w + 1;
@@ -245,8 +241,8 @@ int forward_conv(const int *bottom_blob, float *top_blob, Convolution *conv)
                 // channels
                 for (int q=0; q<channel; q++)
                 {
-                    const float* m = bottom_blob_bordered + step * q;
-                    const float* sptr = m + i*conv->stride_h * w + j*conv->stride_w;
+                    const int* m = bottom_blob_bordered + step * q;
+                    const int* sptr = m + i*conv->stride_h * w + j*conv->stride_w;
 
                     for (int k = 0; k < maxk; k++) // 29.23
                     {
@@ -360,3 +356,118 @@ void permute(float *src, float *dst, int type, int w, int h, int channel)
     
 }
 
+int forward_conv_arm(const int *bottom_blob, float *top_blob, Convolution *conv)
+{
+    const int kernel_extent_w = conv->dilation_w * (conv->kernel_w - 1) + 1;
+    const int kernel_extent_h = conv->dilation_h * (conv->kernel_h - 1) + 1;
+
+    int w = conv->w + conv->pad_w + conv->pad_w;
+    int h = conv->h + conv->pad_h + conv->pad_h;
+    int channel = conv->c;
+    float *bottom_blob_bordered;
+    int *bottom_blob_float;
+    bottom_blob_bordered = (float*)malloc(w*h*channel*sizeof(float));
+    bottom_blob_float = (int*)malloc(conv->w*conv->h*channel*sizeof(int));
+    memset(bottom_blob_bordered, 0, w*h*channel*sizeof(float));
+    memset(bottom_blob_float, 0, w*h*channel*sizeof(int));
+    
+    copy_make_border(bottom_blob, bottom_blob_float, conv->pad_h, conv->pad_h, conv->pad_w, conv->pad_w, channel, 0.f, conv);
+    Int2Float(bottom_blob_float, bottom_blob_bordered, conv->w*conv->h*channel);
+
+    int outw = (w - kernel_extent_w) / conv->stride_w + 1;
+    int outh = (h - kernel_extent_h) / conv->stride_h + 1;
+
+    int step = w * h;
+    int outstep = outw * outh;
+    #pragma omp parallel for
+    for (int p=0; p<conv->num_output; p++)
+    {
+        float* outptr = top_blob + outstep * p;
+        float sum = 0.f;
+
+        if (conv->bias_term)
+            sum = conv->bias_data[p];
+
+        for (int st=0; st < outstep; st++)
+            outptr[st] = sum;
+
+        for (int q=0; q<channel; q++)
+        {
+            float* outptr1 = outptr;
+
+            const float* img0 = bottom_blob_bordered + q * step;
+
+            const float* kernel0 = conv->weight_data + p*channel*15  + q*15;
+
+            const float* r0 = img0;
+            const float* r1 = img0 + w;
+            const float* r2 = img0 + w*2;
+
+            float32x4_t _k0123 = vld1q_f32(kernel0);
+            float32x4_t _k4567 = vld1q_f32(kernel0+4);
+            float32x4_t _k891011 = vld1q_f32(kernel0+8);
+            float32x4_t _k12131415 = vld1q_f32(kernel0+12);
+
+            for (int i = 0; i < outh; i++)
+            {
+                // 因为现在刚好是4的整数倍，所以不需要写remain的计算。
+                int nn = outw >> 2;
+                // int remain = outw & 3;
+
+                for (; nn>0; nn--)
+                {
+                    float32x4_t _sum = vld1q_f32(outptr1);
+
+                    float32x4_t _r00 = vld1q_f32(r0);
+                    float32x4_t _r04 = vld1q_f32(r0 + 4);
+                    float32x4_t _r01 = vextq_f32(_r00, _r04, 1);
+                    float32x4_t _r02 = vextq_f32(_r00, _r04, 2);
+                    float32x4_t _r03 = vextq_f32(_r00, _r04, 3);
+
+                    float32x4_t _r10 = vld1q_f32(r1);
+                    float32x4_t _r14 = vld1q_f32(r1 + 4);
+                    float32x4_t _r11 = vextq_f32(_r10, _r14, 1);
+                    float32x4_t _r12 = vextq_f32(_r10, _r14, 2);
+                    float32x4_t _r13 = vextq_f32(_r10, _r14, 3);
+
+                    float32x4_t _r20 = vld1q_f32(r2);
+                    float32x4_t _r24 = vld1q_f32(r2 + 4);
+                    float32x4_t _r21 = vextq_f32(_r20, _r24, 1);
+                    float32x4_t _r22 = vextq_f32(_r20, _r24, 2);
+                    float32x4_t _r23 = vextq_f32(_r20, _r24, 3);
+
+                    _sum = vfmaq_laneq_f32(_sum, _r00, _k0123, 0);
+                    _sum = vfmaq_laneq_f32(_sum, _r01, _k0123, 1);
+                    _sum = vfmaq_laneq_f32(_sum, _r02, _k0123, 2);
+                    _sum = vfmaq_laneq_f32(_sum, _r03, _k0123, 3);
+                    _sum = vfmaq_laneq_f32(_sum, _r04, _k4567, 0);
+
+                    _sum = vfmaq_laneq_f32(_sum, _r10, _k4567, 1);
+                    _sum = vfmaq_laneq_f32(_sum, _r11, _k4567, 2);
+                    _sum = vfmaq_laneq_f32(_sum, _r12, _k4567, 3);
+                    _sum = vfmaq_laneq_f32(_sum, _r13, _k891011, 0);
+                    _sum = vfmaq_laneq_f32(_sum, _r14, _k891011, 1);
+
+                    _sum = vfmaq_laneq_f32(_sum, _r20, _k891011, 2);
+                    _sum = vfmaq_laneq_f32(_sum, _r21, _k891011, 3);
+                    _sum = vfmaq_laneq_f32(_sum, _r22, _k12131415, 0);
+                    _sum = vfmaq_laneq_f32(_sum, _r23, _k12131415, 1);
+                    _sum = vfmaq_laneq_f32(_sum, _r24, _k12131415, 2);
+
+                    vst1q_f32(outptr1, _sum);
+
+                    r0 += 4;
+                    r1 += 4;
+                    r2 += 4;
+                    outptr1 += 4;
+                }
+                r0 += 4;
+                r1 += 4;
+                r2 += 4;
+            }
+        }   
+    }
+    fprintf(stderr, "forward end.\n");
+
+    return 0;
+}
