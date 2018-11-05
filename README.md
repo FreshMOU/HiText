@@ -33,3 +33,5 @@ typedef struct
     DKSBox boxes[DKMAXBOXNUM];
 }DKSMultiDetectionRes;
 ```
+
+[获取使用示例](https://github.com/FreshMOU/HiText/releases/download/v1.1/libHiText.zip)
