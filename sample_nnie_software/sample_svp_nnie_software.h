@@ -14,6 +14,8 @@ extern "C" {
 #include <stdlib.h>
 #include <math.h>
 
+#include "TextExample.h"
+
 
 #define SAMPLE_SVP_NNIE_NUM_TO_STR(Num) #Num
 #define SAMPLE_SVP_NNIE_ROUND(value) (vx_float32)(((vx_float32)(value) > 0)? floor((vx_float32)(value)+0.5):ceil((vx_float32)(value)-0.5))
@@ -43,12 +45,6 @@ extern "C" {
 #define SAMPLE_SVP_NNIE_USE_MUL_THREAD            1 /*Use multi thread*/
 #define SAMPLE_SVP_NNIE_MAX_THREAD_NUM            4 /*Multi thread number*/
 
-/*CNN GetTopN unit*/
-typedef struct hiSAMPLE_SVP_NNIE_CNN_GETTOPN_UNIT_S
-{
-    HI_U32   u32ClassId;
-    HI_U32   u32Confidence;
-}SAMPLE_SVP_NNIE_CNN_GETTOPN_UNIT_S;
 
 /*stack for sort*/
 typedef struct hiSAMPLE_SVP_NNIE_STACK
@@ -75,63 +71,12 @@ typedef struct hiSAMPLE_SVP_NNIE_YOLOV2_BBOX
     HI_U32 u32Mask;
 }SAMPLE_SVP_NNIE_YOLOV2_BBOX_S;
 
-/*CNN*/
-HI_S32 SAMPLE_SVP_NNIE_Cnn_GetTopN(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_CNN_SOFTWARE_PARAM_S* pstSoftwareParam);
-
-/*FasterRcnn*/
-HI_U32 SAMPLE_SVP_NNIE_RpnTmpBufSize(HI_U32 u32RatioAnchorsNum,
-    HI_U32 u32ScaleAnchorsNum, HI_U32 u32ConvHeight, HI_U32 u32ConvWidth);
-
-HI_U32 SAMPLE_SVP_NNIE_FasterRcnn_GetResultTmpBufSize(
-    HI_U32 u32MaxRoiNum, HI_U32 u32ClassNum);
-
-HI_S32 SAMPLE_SVP_NNIE_FasterRcnn_Rpn(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_FASTERRCNN_SOFTWARE_PARAM_S* pstSoftwareParam);
-
-HI_S32 SAMPLE_SVP_NNIE_FasterRcnn_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_FASTERRCNN_SOFTWARE_PARAM_S* pstSoftwareParam);
-
-
-/*Pvanet*/
-HI_U32 SAMPLE_SVP_NNIE_Pvanet_GetResultTmpBufSize(
-    HI_U32 u32MaxRoiNum, HI_U32 u32ClassNum);
-
-HI_S32 SAMPLE_SVP_NNIE_Pvanet_Rpn(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_FASTERRCNN_SOFTWARE_PARAM_S* pstSoftwareParam);
-
-HI_S32 SAMPLE_SVP_NNIE_Pvanet_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_FASTERRCNN_SOFTWARE_PARAM_S* pstSoftwareParam);
-
-/*RFCN*/
-HI_U32 SAMPLE_SVP_NNIE_Rfcn_GetResultTmpBuf(HI_U32 u32MaxRoiNum, HI_U32 u32ClassNum);
-
-HI_S32 SAMPLE_SVP_NNIE_Rfcn_Rpn(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_RFCN_SOFTWARE_PARAM_S* pstSoftwareParam);
-
-HI_S32 SAMPLE_SVP_NNIE_Rfcn_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_RFCN_SOFTWARE_PARAM_S* pstSoftwareParam);
-
 /*SSD*/
 HI_U32 SAMPLE_SVP_NNIE_Ssd_GetResultTmpBuf(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam);
 
 HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam);
-
-/*YOLOV1*/
-HI_U32 SAMPLE_SVP_NNIE_Yolov1_GetResultTmpBuf(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_YOLOV1_SOFTWARE_PARAM_S* pstSoftwareParam);
-
-HI_S32 SAMPLE_SVP_NNIE_Yolov1_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_YOLOV1_SOFTWARE_PARAM_S* pstSoftwareParam);
-
-/*YOLOV2*/
-HI_U32 SAMPLE_SVP_NNIE_Yolov2_GetResultTmpBuf(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_YOLOV2_SOFTWARE_PARAM_S* pstSoftwareParam);
-
-HI_S32 SAMPLE_SVP_NNIE_Yolov2_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_YOLOV2_SOFTWARE_PARAM_S* pstSoftwareParam);
 #ifdef __cplusplus
 }
 #endif

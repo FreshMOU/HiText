@@ -1,3 +1,3 @@
-# HiText
+# 编译成库
 
-conv4_3_CPU分支存的是用CPU代码实现fc7_loc和fc7_conf。
+`make`可以直接生成静态库libhitbpp.a
