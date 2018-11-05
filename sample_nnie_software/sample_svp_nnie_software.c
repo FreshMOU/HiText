@@ -3290,10 +3290,10 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     memset(output_temp[0], 0, sizePermute1);
     output_temp[1] = (float*)malloc(sizePermute2);
     memset(output_temp[0], 0, sizePermute2);
-    
-    forward_conv_arm(aps32ConvReport, output_temp[0], &layers[0]);
+
+    forward_conv_compile(aps32ConvReport, output_temp[0], &layers[0]);
     permute(output_temp[0], PermuteData[0], 0, layers[0].w, layers[0].h, layers[0].num_output);
-    forward_conv_arm(aps32ConvReport, output_temp[1], &layers[1]);
+    forward_conv_compile(aps32ConvReport, output_temp[1], &layers[1]);
     permute(output_temp[1], PermuteData[1], 0, layers[1].w, layers[1].h, layers[1].num_output);
 
     free(output_temp[0]);
