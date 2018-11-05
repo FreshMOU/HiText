@@ -11,7 +11,7 @@ SRCS += $(wildcard ./sample/*.c)
 SRCS += $(wildcard ./sample_nnie_software/*.c)
 SRCS += $(wildcard $(PWD)/../common/*.c)
 SRCS += $(wildcard $(PWD)/conv/*.c)
-TARGET := textboxes_report1
+TARGET := libhitbpp.a
 
 # compile linux or HuaweiLite
 include $(PWD)/../../../$(OSTYPE).mak
