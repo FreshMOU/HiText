@@ -14,4 +14,18 @@ SRCS += $(wildcard $(PWD)/conv/*.c)
 TARGET := libhitbpp.a
 
 # compile linux or HuaweiLite
-include $(PWD)/../../../$(OSTYPE).mak
+# target source
+OBJS  := $(SRCS:%.c=%.o)
+
+.PHONY : clean all
+
+all: $(TARGET)
+
+$(TARGET):$(COMM_OBJ) $(OBJS) 
+	@$(AR) cru $@ $(OBJS) $(COMM_OBJ)
+
+
+clean:
+	@rm -f $(TARGET)
+	@rm -f $(OBJS)
+	@rm -f $(COMM_OBJ)
