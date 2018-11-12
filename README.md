@@ -39,5 +39,5 @@ typedef struct
 
 release中有模型文件和示例图片，需要的是textboxes_fc7.wk，fc7.bin，fc7.parm，text_384x384.bgr文件。  
 下载下来与编译好的hitest放在板子的同一个位置执行`./hitest text_384x384.bgr`即可  
-<font color='red'>注意</font>  fc7.bin和fc7.param需要重命名为nnie.bin和nnie.param。
+注意: fc7.bin和fc7.param需要重命名为nnie.bin和nnie.param。
 
