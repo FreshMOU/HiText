@@ -35,4 +35,4 @@ typedef struct
 ```
 
 [获取使用示例](https://github.com/FreshMOU/HiText/releases/download/v1.1/libHiText.zip)  
-注意放在sample目录下可用，如果要放到其他目录，可以修改Makefile.param
+注意放在mpp/sample目录下可用，如果要放到其他目录，可以修改Makefile.param
