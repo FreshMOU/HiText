@@ -628,7 +628,7 @@ void SAMPLE_SVP_NNIE_Ssd(char *SrcFile, char *ModelName)
     /*software process*/
     /*if user has changed net struct, please make sure SAMPLE_SVP_NNIE_Ssd_GetResult
      function's input datas are correct*/
-    s32Ret = SAMPLE_SVP_NNIE_Ssd_GetResult(&s_stSsdNnieParam,&s_stSsdSoftwareParam);
+    //s32Ret = SAMPLE_SVP_NNIE_Ssd_GetResult(&s_stSsdNnieParam,&s_stSsdSoftwareParam);
     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
         "Error,SAMPLE_SVP_NNIE_Ssd_GetResult failed!\n");
     

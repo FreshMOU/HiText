@@ -4,6 +4,7 @@ include $(PWD)/../Makefile.param
 CFLAGS += -I$(PWD)/sample
 CFLAGS += -I$(PWD)/sample_nnie_software
 CFLAGS += -I$(PWD)/conv
+CFLAGS += -I$(SDK_PATH)/mpp/component/gpu/release/include
 CFLAGS += -O3 -fopenmp
 
 SRCS := $(wildcard *.c)

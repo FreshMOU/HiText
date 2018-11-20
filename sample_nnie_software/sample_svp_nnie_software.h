@@ -53,30 +53,12 @@ typedef struct hiSAMPLE_SVP_NNIE_STACK
     HI_S32 s32Max;
 }SAMPLE_SVP_NNIE_STACK_S;
 
-/*stack for sort*/
-typedef struct hiSAMPLE_SVP_NNIE_YOLOV1_SCORE
-{
-    HI_U32 u32Idx;
-    HI_S32 s32Score;
-}SAMPLE_SVP_NNIE_YOLOV1_SCORE_S;
-
-typedef struct hiSAMPLE_SVP_NNIE_YOLOV2_BBOX
-{
-    HI_FLOAT f32Xmin;
-    HI_FLOAT f32Xmax;
-    HI_FLOAT f32Ymin;
-    HI_FLOAT f32Ymax;
-    HI_S32 s32ClsScore;
-    HI_U32 u32ClassIdx;
-    HI_U32 u32Mask;
-}SAMPLE_SVP_NNIE_YOLOV2_BBOX_S;
-
 /*SSD*/
 HI_U32 SAMPLE_SVP_NNIE_Ssd_GetResultTmpBuf(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam);
 
 HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam);
+    SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam, Convolution *pLayer);
 #ifdef __cplusplus
 }
 #endif

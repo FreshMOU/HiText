@@ -1,6 +1,7 @@
 #include "convolution.h"
 #include <string.h>
 #include <math.h>
+#include <CL/cl.h>
 
 void permuteInt(const int *src, int *dst, int w, int h, int channel)
 {
@@ -165,17 +166,6 @@ int load_model_conv(FILE *binfp, Convolution *conv)
 
 int forward_conv(const int *bottom_blob, float *top_blob, Convolution *conv)
 {
-    // int *bottom_blob;
-    // bottom_blob = (int*)malloc(conv->w*conv->h*conv->c*sizeof(int));
-    // permuteInt(bottom_blob_in, bottom_blob, conv->w, conv->h, conv->c);
-
-    // convolv with NxN kernel
-    // value = value + bias
-
-    //fprintf(stderr, "\nw: %d, h: %d, c:%d , kernel_w: %d, kernel_h: %d\n", bottom_blob.w, bottom_blob.h, bottom_blob.c, kernel_w, kernel_h);
-
-    //fprintf(stderr, "Convolution input %d x %d  pad = %d %d  ksize=%d %d  stride=%d %d\n", w, h, pad_w, pad_h, kernel_w, kernel_h, stride_w, stride_h);
-
     const int kernel_extent_w = conv->dilation_w * (conv->kernel_w - 1) + 1;
     const int kernel_extent_h = conv->dilation_h * (conv->kernel_h - 1) + 1;
 
@@ -190,11 +180,6 @@ int forward_conv(const int *bottom_blob, float *top_blob, Convolution *conv)
 
     int outw = (w - kernel_extent_w) / conv->stride_w + 1;
     int outh = (h - kernel_extent_h) / conv->stride_h + 1;
-    //fprintf(stderr, "w: %d, h: %d, ker_w: %d, ker_h: %d, stride_w: %d, stride_h: %d\n", w,h,kernel_extent_w, kernel_extent_h, stride_w, stride_h);
-
-    //top_blob提前分配好内存，就不在forward中分配了。
-    // top_blob = (float*)malloc(outw * outh * num_output * sizeof(float));
-    // memset(top_blob, 0, outw * outh * num_output * sizeof(float));
 
     const int maxk = conv->kernel_w * conv->kernel_h;
 
@@ -472,7 +457,7 @@ int forward_conv_arm(const int *bottom_blob, float *top_blob, Convolution *conv)
     return 0;
 }
 
-int forward_conv_compile(const int *bottom_blob, float *top_blob, Convolution *conv)
+int forward_conv_cl(const int *bottom_blob, float *top_blob, Convolution *conv)
 {
     const int kernel_extent_w = conv->dilation_w * (conv->kernel_w - 1) + 1;
     const int kernel_extent_h = conv->dilation_h * (conv->kernel_h - 1) + 1;
@@ -484,198 +469,102 @@ int forward_conv_compile(const int *bottom_blob, float *top_blob, Convolution *c
     int *bottom_blob_float;
     bottom_blob_bordered = (float*)malloc(w*h*channel*sizeof(float));
     bottom_blob_float = (int*)malloc(conv->w*conv->h*channel*sizeof(int));
-    memset(bottom_blob_bordered, 0, w*h*channel*sizeof(float));
+    memset(bottom_blob_bordered, 0, w*h*channel*sizeof(int));
     memset(bottom_blob_float, 0, w*h*channel*sizeof(int));
     
     copy_make_border(bottom_blob, bottom_blob_float, conv->pad_h, conv->pad_h, conv->pad_w, conv->pad_w, channel, 0.f, conv);
     Int2Float(bottom_blob_float, bottom_blob_bordered, conv->w*conv->h*channel);
-
     int outw = (w - kernel_extent_w) / conv->stride_w + 1;
     int outh = (h - kernel_extent_h) / conv->stride_h + 1;
 
-    int step = w * h;
-    int outstep = outw * outh;
-    #pragma omp parallel for
-    for (int p=0; p<conv->num_output; p++)
+    int i,j;
+    for (i = 0; i < 280; i++ )
     {
-        float* outptr = top_blob + outstep * p;
-        float sum = 0.f;
-
-        if (conv->bias_term)
-            sum = conv->bias_data[p];
-
-        for (int st=0; st < outstep; st++)
-            outptr[st] = sum;
-
-        for (int q=0; q<channel; q++)
-        {
-            float* outptr1 = outptr;
-            float* outptr2 = outptr + outw;
-
-            const float* img0 = bottom_blob_bordered + q * step;
-
-            const float* kernel0 = conv->weight_data + p*channel*15  + q*15;
-
-            const float* r0 = img0;
-            const float* r1 = img0 + w;
-            const float* r2 = img0 + w*2;
-            const float* r3 = img0 + w*3;
-
-            float32x4_t _k0123 = vld1q_f32(kernel0);
-            float32x4_t _k4567 = vld1q_f32(kernel0+4);
-            float32x4_t _k891011 = vld1q_f32(kernel0+8);
-            float32x4_t _k12131415 = vld1q_f32(kernel0+12);
-
-            for (int i = 0; i+1 < outh; i+=2)
-            {
-                // 因为现在刚好是4的整数倍，所以不需要写remain的计算。
-                int nn = outw >> 2;
-                // int remain = outw & 3;
-
-                if (nn > 0)
-                {
-                asm volatile(
-                    // v11 = rx1 / rx3
-                    // v12 = rx2
-                    // v13 v14 = intermediate sum register
-
-                    "prfm       pldl1keep, [%1, #128]          \n"
-                    "ld1        {v7.4s}, [%1]                  \n"// v7 = out
-
-                    "0:                                        \n"
-
-                    "prfm       pldl1keep, [%2, #128]          \n"
-                    "ld1        {v8.4s}, [%2]                  \n"// v8 = out2
-                    // r1
-                    "prfm       pldl1keep, [%4, #256]          \n"
-                    "ld1        {v9.4s, v10.4s}, [%4]          \n"// v9 v10 = r10 r14
-                    "add        %4, %4, #16                    \n" 
-
-                    "ext        v11.16b, v9.16b, v10.16b, #4   \n" //r11
-                    "fmul       v13.4s, v9.4s, %15.s[1]        \n"
-
-                    "fmul       v14.4s, v9.4s, %14.s[0]        \n"
-                    "fmla       v8.4s, v11.4s, %14.s[1]        \n"
-
-                    "ext        v12.16b, v9.16b, v10.16b, #8   \n" //r12
-                    "fmla       v7.4s,  v11.4s, %15.s[2]       \n"
-
-                    "ext        v11.16b, v9.16b, v10.16b, #12  \n" //r13
-                    "fmla       v13.4s, v12.4s, %15.s[3]       \n"
-
-                    "fmla       v7.4s,  v11.4s, %16.s[0]       \n"
-                    "fmla       v14.4s, v12.4s, %14.s[2]       \n"
-                    "fmla       v8.4s,  v11.4s, %14.s[3]       \n"
-                    "fmla       v14.4s, v10.4s, %15.s[0]       \n"
-
-                    "prfm       pldl1keep, [%5, #256]          \n"
-
-                    "fmla       v13.4s, v10.4s, %16.s[1]       \n"
-
-                    // r2
-                    "ld1        {v9.4s, v10.4s}, [%5]          \n"// v9 v10 = r20 r24
-                    "add        %5, %5, #16                    \n"
-
-                    "ext        v11.16b, v9.16b, v10.16b, #4   \n" //r21
-                    "fmla       v7.4s,  v9.4s, %16.s[2]        \n"        
-
-                    "fmla       v8.4s,  v9.4s,  %15.s[1]       \n"
-                    "fmla       v14.4s, v10.4s, %16.s[1]       \n"     
-
-                    "ext        v12.16b, v9.16b, v10.16b, #8   \n" //r22
-                    "fmla       v13.4s, v11.4s, %16.s[3]       \n"
-                    
-                    "fmla       v8.4s,  v11.4s, %15.s[2]       \n"
-                    "fmla       v14.4s, v12.4s, %15.s[3]       \n"
-
-                    "ext        v11.16b, v9.16b, v10.16b, #12  \n" //r23
-                    "fmla       v7.4s,  v12.4s, %17.s[0]       \n"
-
-                    "fmla       v8.4s,  v11.4s, %16.s[0]       \n"
-
-                    "fmla       v13.4s, v11.4s, %17.s[1]       \n"
-                    "fmla       v7.4s,  v10.4s, %17.s[2]       \n"
-
-                    "prfm       pldl1keep, [%6, #256]          \n"
-                    // r3
-                    "ld1        {v9.4s, v10.4s}, [%6]          \n"// v9 v10 = r30 r34
-                    "add        %6, %6, #16                    \n"
-
-                    "ext        v11.16b, v9.16b, v10.16b, #4   \n" //r31
-                    "fmla       v14.4s,  v9.4s, %16.s[2]       \n"
-
-                    "fmla       v8.4s,  v10.4s, %17.s[2]       \n"
-                    "fmla       v14.4s, v11.4s, %16.s[3]       \n"
-
-                    "ext        v12.16b, v9.16b, v10.16b, #8   \n" //r32
-                    "fmla       v8.4s,  v12.4s,  %17.s[0]      \n"
-
-                    "ext        v11.16b, v9.16b, v10.16b, #12  \n" //r33
-                    "fmla       v14.4s, v11.4s,  %17.s[1]      \n"
-
-                    "fadd       v8.4s, v8.4s, v14.4s           \n"
-
-                    "st1        {v8.4s}, [%2], #16             \n"
-
-                    "prfm       pldl1keep, [%3, #256]          \n"
-
-                    // r0 and r5
-                    "ld1        {v9.4s, v10.4s}, [%3]          \n"// v9 v10 = r00 r04
-                    "add        %3, %3, #16                    \n"//16x8/32=4 -> r0 += 4
-
-                    "ext        v11.16b, v9.16b, v10.16b, #4   \n" //r01
-                    "fmla       v13.4s, v11.4s, %14.s[1]       \n"
-
-                    "ext        v12.16b, v9.16b, v10.16b, #8   \n" //r02
-                    "fmla       v7.4s, v12.4s, %14.s[2]        \n"
-
-                    "ext        v11.16b, v9.16b, v10.16b, #12  \n" //r03
-                    "fmla       v13.4s, v11.4s, %14.s[3]       \n"
-
-                    "fmla       v7.4s,  v9.4s,  %14.s[0]       \n"
-                    "fmla       v13.4s, v10.4s, %15.s[0]       \n"
-
-                    "fadd       v7.4s, v7.4s, v13.4s           \n"
-
-                    "st1        {v7.4s}, [%1], #16             \n"
-
-                    "prfm       pldl1keep, [%1, #128]          \n"
-                    "ld1        {v7.4s}, [%1]                  \n"// v7 = out
-
-                    "subs       %w0, %w0, #1                   \n"
-                    "bne        0b                             \n"
-                    : "=r"(nn),         // %0
-                      "=r"(outptr1),     // %1
-                      "=r"(outptr2),    // %2
-                      "=r"(r0),         // %3
-                      "=r"(r1),         // %4
-                      "=r"(r2),         // %5
-                      "=r"(r3)
-                    : "0"(nn),
-                      "1"(outptr1),
-                      "2"(outptr2),
-                      "3"(r0),
-                      "4"(r1),
-                      "5"(r2),
-                      "6"(r3),
-                      "w"(_k0123),      // %14
-                      "w"(_k4567),      // %15
-                      "w"(_k891011),    // %16
-                      "w"(_k12131415)  // %17
-                    : "cc", "memory", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14"
-                );
-                }
-                r0 += 4 + w;
-                r1 += 4 + w;
-                r2 += 4 + w;
-                r3 += 4 + w;
-
-                outptr1 += outw;
-                outptr2 += outw;
-            }
-        }   
+        for (j = 0; j < 24*24; j++)
+            top_blob[i*24*24 + j] = conv->bias_data[i];
     }
-    fprintf(stderr, "forward end.\n");
+
+    FILE *fp;
+    char *source_str;
+    size_t source_size;
+    
+    fp = fopen("convolution5x3.cl", "r");
+    if (!fp) {
+        fprintf(stderr, "Failed to load kernel.\n");
+        exit(1);
+    }
+    fseek(fp, 0, SEEK_END);
+    int length = ftell(fp);
+    source_str = (char*)malloc((length + 1)*sizeof(char));
+    rewind(fp);
+    source_size = fread( source_str, 1, (length + 1)*sizeof(char), fp);
+    fclose( fp );
+    
+    // Get platform and device information
+    cl_platform_id platform_id = NULL;
+    cl_device_id device_id = NULL;
+    cl_uint ret_num_devices;
+    cl_uint ret_num_platforms;
+    cl_int ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
+    
+    ret = clGetDeviceIDs( platform_id, CL_DEVICE_TYPE_GPU, 1,
+                         &device_id, &ret_num_devices);
+    fprintf(stderr, "ret_num_devices:  %d\n", ret_num_devices);
+
+    // Create an OpenCL context
+    cl_context context = clCreateContext( NULL, 1, &device_id, NULL, NULL, &ret);
+    
+    // Create a command queue
+    cl_command_queue command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
+
+    cl_mem in_mem_obj  = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        (w*h*1024) * sizeof(float), bottom_blob_bordered, &ret);
+    cl_mem weight_mem_obj  = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        5*3*1024*280 * sizeof(float), conv->weight_data, &ret);
+    cl_mem out_mem_obj = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                        outw*outh*280*sizeof(float) , top_blob, &ret);
+    void *mapped_memory;
+    
+    // Create a program from the kernel source
+    cl_program program = clCreateProgramWithSource(context, 1,
+                                                   (const char **)&source_str, (const size_t *)&source_size, &ret);
+
+    // Build the program
+    ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
+
+    // Create the OpenCL kernel
+    cl_kernel kernel = clCreateKernel(program, "convolution_5x3", &ret);
+    ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&in_mem_obj);
+    ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&weight_mem_obj);
+    ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&out_mem_obj);
+
+    // Execute the OpenCL kernel on the list
+    size_t global_item_size[3] = {3, 24, 280}; // Process the entire lists
+    size_t local_item_size[3] = {1, 2, 14}; // Divide work items into groups of 64
+    for (i = 0; i < 1024; i++)
+    {
+        ret = clSetKernelArg(kernel, 3, sizeof(int), (void *)&i);
+        ret = clEnqueueNDRangeKernel(command_queue, kernel, 3, NULL,
+                                 global_item_size, local_item_size, 0, NULL, NULL);
+        //ret = clEnqueueReadBuffer(command_queue, out_mem_obj, CL_TRUE, 0, outw*outh*240*sizeof(float), top_blob, 0, NULL, NULL);
+
+        //clFinish(command_queue);
+    }
+
+    mapped_memory = clEnqueueMapBuffer(command_queue, out_mem_obj, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 
+                            0, outw*outh*280*sizeof(float), 0, NULL, NULL, &ret);
+    memcpy(top_blob, mapped_memory, outw*outh*280*sizeof(float));
+    ret = clEnqueueUnmapMemObject(command_queue, out_mem_obj, mapped_memory, 0, NULL, NULL);
+
+    ret = clFlush(command_queue);
+    ret = clFinish(command_queue);
+    ret = clReleaseKernel(kernel);
+    ret = clReleaseProgram(program);
+    ret = clReleaseMemObject(in_mem_obj);
+    ret = clReleaseMemObject(weight_mem_obj);
+    ret = clReleaseMemObject(out_mem_obj);
+    ret = clReleaseCommandQueue(command_queue);
+    ret = clReleaseContext(context);
 
     return 0;
 }

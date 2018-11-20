@@ -1,4 +1,5 @@
 #include"sample_svp_nnie_software.h"
+#include <CL/cl.h>
 
 #ifdef __cplusplus    // If used by C++ code,
 extern "C" {          // we need to export the C interface
@@ -1169,7 +1170,7 @@ HI_U32 SAMPLE_SVP_NNIE_Ssd_GetResultTmpBuf(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
 *
 *****************************************************************************/
 HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam)
+    SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam, Convolution *pLayer)
 {
     HI_S32* aps32PermuteResult[SAMPLE_SVP_NNIE_SSD_REPORT_NODE_NUM];
     HI_S32* aps32PriorboxOutputData[SAMPLE_SVP_NNIE_SSD_PRIORBOX_NUM];
@@ -1181,49 +1182,18 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     HI_S32 s32Ret = HI_SUCCESS;
     HI_U32 i = 0;
 
-    /* 自己实现的CPU卷积 */
+    /* 自己实现的GPU卷积 */
     HI_S32* aps32ConvReport;
     aps32ConvReport = (HI_S32*)pstNnieParam->astSegData[0].astDst[0].u64VirAddr;    //fc7
 
-    Convolution layers[2];
-    Convolution *pLayer;
-    pLayer = &layers[0];
-    int pload = load_param_fp("nnie.param", pLayer);
-    if (pload != 0)
-    {
-        fprintf(stderr, "load_param_fp error!\n");
-        return -1;
-    }
+    forward_conv_cl(aps32ConvReport, pLayer->output_temp, pLayer);
 
-    load_model_fp("nnie.bin", pLayer);
+    float *LocTemp, *ConfTemp;
+    LocTemp  = pLayer->output_temp;
+    ConfTemp = LocTemp + 24*24*240;
 
-    int FeatureMapW = 24;
-    int FeatureMapH = 24;
-    int FeatureMapC[2] = {240, 40};
-    float *PermuteData[2];
-    size_t sizePermute1 = FeatureMapW*FeatureMapH*FeatureMapC[0]*sizeof(float);
-    size_t sizePermute2 = FeatureMapW*FeatureMapH*FeatureMapC[1]*sizeof(float);
-
-    PermuteData[0] = (float*)malloc(sizePermute1);
-    PermuteData[1] = (float*)malloc(sizePermute2);
-    memset(PermuteData[0], 0, sizePermute1);
-    memset(PermuteData[1], 0, sizePermute2);
-
-    float *output_temp[2];
-    output_temp[0] = (float*)malloc(sizePermute1);
-    memset(output_temp[0], 0, sizePermute1);
-    output_temp[1] = (float*)malloc(sizePermute2);
-    memset(output_temp[0], 0, sizePermute2);
-
-    forward_conv_compile(aps32ConvReport, output_temp[0], &layers[0]);
-    permute(output_temp[0], PermuteData[0], 0, layers[0].w, layers[0].h, layers[0].num_output);
-    forward_conv_compile(aps32ConvReport, output_temp[1], &layers[1]);
-    permute(output_temp[1], PermuteData[1], 0, layers[1].w, layers[1].h, layers[1].num_output);
-
-    free(output_temp[0]);
-    free(output_temp[1]);
-
-    //fprintf(stderr, "forward by myself end.\n");
+    permute(LocTemp, pLayer->PermuteData[0], 0, 24, 24, 240);
+    permute(ConfTemp, pLayer->PermuteData[1], 0, 24, 24, 40);
 
     /*get permut result*/
     for(i = 0; i < 2; i++)
@@ -1277,7 +1247,7 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
         pstSoftwareParam->au32SoftMaxInChn, pstSoftwareParam->u32ConcatNum,
         pstSoftwareParam->au32ConvStride, pstSoftwareParam->u32SoftMaxOutWidth,
         pstSoftwareParam->u32SoftMaxOutHeight, pstSoftwareParam->u32SoftMaxOutChn,
-        aps32SoftMaxInputData, ps32SoftMaxOutputData, PermuteData);
+        aps32SoftMaxInputData, ps32SoftMaxOutputData, pLayer->PermuteData);
 
     //fprintf(stderr, "detection in.\n");
     /*detection*/
@@ -1296,7 +1266,7 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
         aps32DetectionLocData, aps32PriorboxOutputData, ps32SoftMaxOutputData,
         ps32DetectionOutTmpBuf, (HI_S32*)pstSoftwareParam->stDstScore.u64VirAddr,
         (HI_S32*)pstSoftwareParam->stDstRoi.u64VirAddr,
-        (HI_S32*)pstSoftwareParam->stClassRoiNum.u64VirAddr, PermuteData);
+        (HI_S32*)pstSoftwareParam->stClassRoiNum.u64VirAddr, pLayer->PermuteData);
 
     return s32Ret;
 }
