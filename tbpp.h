@@ -12,6 +12,8 @@ DKSMultiDetectionRes DKMultiClassDetectionProcess(char * imgfilename);
 // 释放NNIE资源
 void DKMultiClassDetectionEnd();
 
-int tbpp_sample(char* a, char* b);
+// 手势识别
+DKSMultiDetectionRes DKHandProcess(char * imgfilename);
+
 
 #endif
