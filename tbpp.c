@@ -6,6 +6,10 @@ static SAMPLE_SVP_NNIE_PARAM_S s_stTextNnieParam = {0};
 static SAMPLE_SVP_NNIE_MODEL_S s_stSsdModel = {0};
 static SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S s_stSsdSoftwareParam = {0};
 Convolution Layer;
+cl_command_queue command_queue;
+cl_context context;
+cl_program program;
+cl_kernel kernel;
 
 void ConvLayerInit(Convolution *pLayer)
 {
@@ -57,13 +61,17 @@ void Convload_model(const char *protopath, Convolution *pLayer)
 void DKMultiClassDetectionEnd()
 {
     ConvRelease(&Layer);
+    clReleaseKernel(kernel);
+    clReleaseProgram(program);
+    clReleaseCommandQueue(command_queue);
+    clReleaseContext(context);
     SAMPLE_SVP_NNIE_Ssd_Deinit(&s_stTextNnieParam,&s_stSsdSoftwareParam,&s_stSsdModel);
     SAMPLE_COMM_SVP_CheckSysExit();
 }
 
 void DKMultiClassDetectionInit()
 {
-    HI_CHAR *pcModelName = "textboxes_fc7.wk";
+    HI_CHAR *pcModelName = "textboxes_fc7.wk";//;"vgg_conv1.wk"
     HI_U32 u32PicNum = 1;
     HI_S32 s32Ret = HI_SUCCESS;
     SAMPLE_SVP_NNIE_CFG_S   stNnieCfg = {0};
@@ -96,6 +104,49 @@ void DKMultiClassDetectionInit()
     ConvLayerInit(&Layer);
     Convload_model("nnie.bin", &Layer);
 
+    FILE *fp;
+    char *source_str;
+    size_t source_size;
+    
+    fp = fopen("convolution5x3.cl", "r");
+    if (!fp) {
+        fprintf(stderr, "Failed to load kernel.\n");
+        exit(1);
+    }
+    fseek(fp, 0, SEEK_END);
+    int length = ftell(fp);
+    source_str = (char*)malloc((length + 1)*sizeof(char));
+    rewind(fp);
+    source_size = fread( source_str, 1, (length + 1)*sizeof(char), fp);
+    fclose( fp );
+    
+    // Get platform and device information
+    cl_platform_id platform_id = NULL;
+    cl_device_id device_id = NULL;
+    cl_uint ret_num_devices;
+    cl_uint ret_num_platforms;
+    cl_int ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
+    
+    ret = clGetDeviceIDs( platform_id, CL_DEVICE_TYPE_GPU, 1,
+                         &device_id, &ret_num_devices);
+    fprintf(stderr, "ret_num_devices:  %d\n", ret_num_devices);
+
+    // Create an OpenCL context
+    context = clCreateContext( NULL, 1, &device_id, NULL, NULL, &ret);
+    
+    // Create a command queue
+    command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
+
+    // Create a program from the kernel source
+    program = clCreateProgramWithSource(context, 1,
+                                                   (const char **)&source_str, (const size_t *)&source_size, &ret);
+
+    // Build the program
+    ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
+
+    // Create the OpenCL kernel
+    kernel = clCreateKernel(program, "convolution_5x3_bifrost", &ret);
+
 SSD_FAIL_0:
     if (s32Ret != HI_SUCCESS)
         DKMultiClassDetectionEnd();
@@ -107,7 +158,7 @@ DKSMultiDetectionRes DKMultiClassDetectionProcess(char * imgfilename)
     SAMPLE_SVP_NNIE_INPUT_DATA_INDEX_S stInputDataIdx = {0};
     SAMPLE_SVP_NNIE_PROCESS_SEG_INDEX_S stProcSegIdx = {0};
     HI_S32 s32Ret = HI_SUCCESS;
-    HI_FLOAT f32PrintResultThresh = 0.2f;
+    HI_FLOAT f32PrintResultThresh = 0.5f;
 
     struct timeval tv_begin, tv_end;
     gettimeofday(&tv_begin,NULL);
@@ -129,7 +180,7 @@ DKSMultiDetectionRes DKMultiClassDetectionProcess(char * imgfilename)
     /*software process*/
     /*if user has changed net struct, please make sure SAMPLE_SVP_NNIE_Ssd_GetResult
      function's input datas are correct*/
-    s32Ret = SAMPLE_SVP_NNIE_Ssd_GetResult(&s_stTextNnieParam,&s_stSsdSoftwareParam, &Layer);
+    s32Ret = SAMPLE_SVP_NNIE_Ssd_GetResult(&s_stTextNnieParam,&s_stSsdSoftwareParam, &Layer, command_queue, context, kernel);
     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
         "Error,SAMPLE_SVP_NNIE_Ssd_GetResult failed!\n");
     

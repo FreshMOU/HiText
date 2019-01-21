@@ -318,37 +318,41 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     /*the SSD sample report resule is after permute operation,
      conv result is (C, H, W), after permute, the report node's
      (C1, H1, W1) is (H, W, C), the stride of report result is aligned according to C dim*/
-    for(i = 2; i < 4; i++)
-    {
-        pstSoftWareParam->au32ConvHeight[i-2] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Chn;
-        pstSoftWareParam->au32ConvWidth[i-2] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Height;
-        pstSoftWareParam->au32ConvChannel[i-2] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Width;
-        if(i%2==1)
-        {
-            pstSoftWareParam->au32ConvStride[i/2-1] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[i]*sizeof(HI_U32))/sizeof(HI_U32);
-        }
-    }
+    // for(i = 2; i < 4; i++)
+    // {
+    //     pstSoftWareParam->au32ConvHeight[i-2] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Chn;
+    //     pstSoftWareParam->au32ConvWidth[i-2] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Height;
+    //     pstSoftWareParam->au32ConvChannel[i-2] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Width;
+    //     if(i%2==1)
+    //     {
+    //         pstSoftWareParam->au32ConvStride[i/2-1] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[i]*sizeof(HI_U32))/sizeof(HI_U32);
+    //     }
+    // }
 
-    pstSoftWareParam->au32ConvHeight[2]  = 24; 
-    pstSoftWareParam->au32ConvWidth[2]   = 24;
-    pstSoftWareParam->au32ConvChannel[2] = 240;
-    pstSoftWareParam->au32ConvHeight[3]  = 24; 
-    pstSoftWareParam->au32ConvWidth[3]   = 24;
-    pstSoftWareParam->au32ConvChannel[3] = 40;
-    pstSoftWareParam->au32ConvStride[1] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[3]*sizeof(HI_U32))/sizeof(HI_U32);
+    // pstSoftWareParam->au32ConvHeight[2]  = 24; 
+    // pstSoftWareParam->au32ConvWidth[2]   = 24;
+    // pstSoftWareParam->au32ConvChannel[2] = 240;
+    // pstSoftWareParam->au32ConvHeight[3]  = 24; 
+    // pstSoftWareParam->au32ConvWidth[3]   = 24;
+    // pstSoftWareParam->au32ConvChannel[3] = 40;
+    // pstSoftWareParam->au32ConvStride[1] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[3]*sizeof(HI_U32))/sizeof(HI_U32);
 
-    for(i = 4; i < 12; i++)
-    {
-        //fprintf(stderr, "u32Chn : %d\n", pstNnieParam->pstModel->astSeg[0].astDstNode[i].unShape.stWhc.u32Chn);
-        pstSoftWareParam->au32ConvHeight[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Chn;
-        pstSoftWareParam->au32ConvWidth[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Height;
-        pstSoftWareParam->au32ConvChannel[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Width;
-        if(i%2==1)
-        {
-            pstSoftWareParam->au32ConvStride[i/2] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[i]*sizeof(HI_U32))/sizeof(HI_U32);
-        }
-        //fprintf(stderr, "H: %d, W: %d, C: %d, convstride: %d\n", pstSoftWareParam->au32ConvHeight[i], pstSoftWareParam->au32ConvWidth[i], pstSoftWareParam->au32ConvChannel[i], pstSoftWareParam->au32ConvStride[i/2]);
-    }
+    // for(i = 4; i < 12; i++)
+    // {
+    //     pstSoftWareParam->au32ConvHeight[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Chn;
+    //     pstSoftWareParam->au32ConvWidth[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Height;
+    //     pstSoftWareParam->au32ConvChannel[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i-1].unShape.stWhc.u32Width;
+    //     if(i%2==1)
+    //     {
+    //         pstSoftWareParam->au32ConvStride[i/2] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[i]*sizeof(HI_U32))/sizeof(HI_U32);
+    //     }
+    // }
+    pstSoftWareParam->au32ConvStride[0] = SAMPLE_SVP_NNIE_ALIGN16(40*sizeof(HI_U32))/sizeof(HI_U32);
+    pstSoftWareParam->au32ConvStride[1] = SAMPLE_SVP_NNIE_ALIGN16(40*sizeof(HI_U32))/sizeof(HI_U32);
+    pstSoftWareParam->au32ConvStride[2] = SAMPLE_SVP_NNIE_ALIGN16(40*sizeof(HI_U32))/sizeof(HI_U32);
+    pstSoftWareParam->au32ConvStride[3] = SAMPLE_SVP_NNIE_ALIGN16(40*sizeof(HI_U32))/sizeof(HI_U32);
+    pstSoftWareParam->au32ConvStride[4] = SAMPLE_SVP_NNIE_ALIGN16(40*sizeof(HI_U32))/sizeof(HI_U32);
+    pstSoftWareParam->au32ConvStride[5] = SAMPLE_SVP_NNIE_ALIGN16(40*sizeof(HI_U32))/sizeof(HI_U32);
 
     // FIXME:
     /*Set PriorBox Parameters*/
@@ -681,8 +685,13 @@ HI_S32 TextBoxes_plusplus_Result(DKSMultiDetectionRes *DetectRes, SVP_BLOB_S *ps
             f32Score = (HI_FLOAT)ps32Score[u32ScoreBias + j] / SAMPLE_SVP_NNIE_QUANT_BASE;
             if (f32Score < f32PrintResultThresh)
             {
-                break;
+                continue;
             }
+            DetectRes->boxes[count].xmin = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON];
+            DetectRes->boxes[count].ymin = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 1];
+            DetectRes->boxes[count].xmax = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 2];
+            DetectRes->boxes[count].ymax = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 3];
+
             DetectRes->boxes[count].x1 = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 4];
             DetectRes->boxes[count].y1 = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 5];
             DetectRes->boxes[count].x2 = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 6];
@@ -691,6 +700,7 @@ HI_S32 TextBoxes_plusplus_Result(DKSMultiDetectionRes *DetectRes, SVP_BLOB_S *ps
             DetectRes->boxes[count].y3 = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 9];
             DetectRes->boxes[count].x4 = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 10];
             DetectRes->boxes[count].y4 = ps32Roi[u32BboxBias + j*SAMpLE_SVP_NNIE_POLYGON + 11];
+            DetectRes->boxes[count].score = f32Score;
             count ++;
         }
         u32RoiNumBias += ps32ClassRoiNum[i];

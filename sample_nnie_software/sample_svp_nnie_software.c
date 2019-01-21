@@ -1116,7 +1116,7 @@ HI_U32 SAMPLE_SVP_NNIE_Ssd_GetResultTmpBuf(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     HI_U32 i = 0;
 
     /*priorbox size*/
-    for(i = 0; i < pstNnieParam->pstModel->astSeg[0].u16DstNum/2; i++)
+    for(i = 0; i < 6/*pstNnieParam->pstModel->astSeg[0].u16DstNum/2*/; i++)
     {
         u32PriorBoxSize += pstSoftwareParam->au32PriorBoxHeight[i]*pstSoftwareParam->au32PriorBoxWidth[i]*
             SAMPLE_SVP_NNIE_COORDI_NUM*2*(pstSoftwareParam->u32MaxSizeNum+pstSoftwareParam->u32MinSizeNum+
@@ -1170,7 +1170,7 @@ HI_U32 SAMPLE_SVP_NNIE_Ssd_GetResultTmpBuf(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
 *
 *****************************************************************************/
 HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
-    SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam, Convolution *pLayer)
+    SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam, Convolution *pLayer, cl_command_queue command_queue, cl_context context, cl_kernel kernel)
 {
     HI_S32* aps32PermuteResult[SAMPLE_SVP_NNIE_SSD_REPORT_NODE_NUM];
     HI_S32* aps32PriorboxOutputData[SAMPLE_SVP_NNIE_SSD_PRIORBOX_NUM];
@@ -1181,12 +1181,13 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     HI_U32 u32Size = 0;
     HI_S32 s32Ret = HI_SUCCESS;
     HI_U32 i = 0;
+    HI_U32 j = 0;
 
     /* 自己实现的GPU卷积 */
     HI_S32* aps32ConvReport;
     aps32ConvReport = (HI_S32*)pstNnieParam->astSegData[0].astDst[0].u64VirAddr;    //fc7
 
-    forward_conv_cl(aps32ConvReport, pLayer->output_temp, pLayer);
+    forward_conv_cl(aps32ConvReport, pLayer->output_temp, pLayer, command_queue, context, kernel);
 
     float *LocTemp, *ConfTemp;
     LocTemp  = pLayer->output_temp;
@@ -1205,6 +1206,24 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     {
         aps32PermuteResult[i] = (HI_S32*)pstNnieParam->astSegData[0].astDst[i-1].u64VirAddr;
     }
+
+    // FILE *fp;
+    // fp = fopen("conv1_float_permute.txt", "w");
+    // for(i=0; i<pstSoftwareParam->au32SoftMaxInChn[1]; i++)
+    //     fprintf(fp, "conv4_3 -> i : %f\n", (float)aps32PermuteResult[1][i]/4096);
+    // for(i=0; i<pstSoftwareParam->au32SoftMaxInChn[2]; i++)
+    //     fprintf(fp, "fc7     -> i : %f\n", (float)(pLayer->PermuteData[1])[i]/4096);
+    // for(i=0; i<pstSoftwareParam->au32SoftMaxInChn[3]; i++)
+    //     fprintf(fp, "conv6_2 -> i : %f\n", (float)aps32PermuteResult[5][i]/4096);
+    // for(i=0; i<pstSoftwareParam->au32SoftMaxInChn[4]; i++)
+    //     fprintf(fp, "conv7_2 -> i : %f\n", (float)aps32PermuteResult[7][i]/4096);
+    // for(i=0; i<pstSoftwareParam->au32SoftMaxInChn[5]; i++)
+    //     fprintf(fp, "conv8_2 -> i : %f\n", (float)aps32PermuteResult[9][i]/4096);
+    // for(i=0; i<pstSoftwareParam->au32SoftMaxInChn[6]; i++)
+    //     fprintf(fp, "conv9_2 -> i : %f\n", (float)aps32PermuteResult[11][i]/4096);
+    
+    // fclose(fp);
+
 
     //fprintf(stderr, "priorbox in.\n");
     /*priorbox*/
@@ -1251,13 +1270,26 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
 
     //fprintf(stderr, "detection in.\n");
     /*detection*/
+    //FILE *fp;
+    //fp = fopen("output_nnie.txt", "w");
     ps32DetectionOutTmpBuf = (HI_S32*)pstSoftwareParam->stGetResultTmpBuf.u64VirAddr;
     for(i = 0; i < SAMPLE_SVP_NNIE_SSD_PRIORBOX_NUM; i++)
     {
         if ( i == 1)
+        {
+            // for (j=0; j<pstSoftwareParam->au32DetectInputChn[i]; j++)
+            // {
+            //     fprintf(fp, "layer_num : %d i %d ---  permutedata %f\n", i, j, pLayer->PermuteData[0][j]/4096);
+            // }
             continue;
+        }
         aps32DetectionLocData[i] = aps32PermuteResult[i*2];
+        // for (j=0; j<pstSoftwareParam->au32DetectInputChn[i]; j++)
+        // {
+        //     fprintf(fp, "layer_num : %d i %d ---  permutedata %f\n", i, j, (float)aps32DetectionLocData[i][j]/4096);
+        // }
     }
+    // fclose(fp);
 
     // FIXME:
     (void)SVP_NNIE_Ssd_DetectionOutForward(pstSoftwareParam->u32ConcatNum,

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <arm_neon.h>
+#include <CL/cl.h>
 
 typedef struct convolution{
     int num_output;
@@ -43,7 +44,7 @@ void permute(float *src, float *dst, int type, int w, int h, int channel);
 
 int forward_conv_arm(const int *bottom_blob, float *top_blob, Convolution *conv);
 int forward_conv_compile(const int *bottom_blob, float *top_blob, Convolution *conv);
-int forward_conv_cl(const int *bottom_blob, float *top_blob, Convolution *conv);
+int forward_conv_cl(const int *bottom_blob, float *top_blob, Convolution *conv, cl_command_queue command_queue, cl_context context, cl_kernel kernel);
 
 int Float2Int(float *input, int *output, int size);
 
