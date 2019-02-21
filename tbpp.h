@@ -7,11 +7,13 @@
 void DKMultiClassDetectionInit();
 
 // 运行NNIE执行检测，得到检测结果
-DKSMultiDetectionRes DKMultiClassDetectionProcess(char * imgfilename);
+DKSMultiDetectionRes DKMultiClassDetectionProcess(char * imgfilename, float f32PrintResultThresh);
 
 // 释放NNIE资源
 void DKMultiClassDetectionEnd();
 
-int tbpp_sample(char* a, char* b);
+// 手势识别
+DKSMultiDetectionRes DKHandProcess(char * imgfilename, float f32PrintResultThresh);
+
 
 #endif

@@ -467,13 +467,14 @@ int forward_conv_arm(const int *bottom_blob, float *top_blob, Convolution *conv)
             }
         }   
     }
-    fprintf(stderr, "forward end.\n");
+    //fprintf(stderr, "forward end.\n");
 
     return 0;
 }
 
 int forward_conv_compile(const int *bottom_blob, float *top_blob, Convolution *conv)
 {
+    //fprintf(stderr, "compile start\n");
     const int kernel_extent_w = conv->dilation_w * (conv->kernel_w - 1) + 1;
     const int kernel_extent_h = conv->dilation_h * (conv->kernel_h - 1) + 1;
 
@@ -483,7 +484,7 @@ int forward_conv_compile(const int *bottom_blob, float *top_blob, Convolution *c
     float *bottom_blob_bordered;
     int *bottom_blob_float;
     bottom_blob_bordered = (float*)malloc(w*h*channel*sizeof(float));
-    bottom_blob_float = (int*)malloc(conv->w*conv->h*channel*sizeof(int));
+    bottom_blob_float = (int*)malloc(w*h*channel*sizeof(int));
     memset(bottom_blob_bordered, 0, w*h*channel*sizeof(float));
     memset(bottom_blob_float, 0, w*h*channel*sizeof(int));
     
@@ -675,7 +676,12 @@ int forward_conv_compile(const int *bottom_blob, float *top_blob, Convolution *c
             }
         }   
     }
-    fprintf(stderr, "forward end.\n");
+    //fprintf(stderr, "forward end.\n");
+    //fprintf(stderr, "address: %d, bordered: %d, bottom: %d, top: %d\n", bottom_blob_float, bottom_blob_bordered, bottom_blob, top_blob);
+    free(bottom_blob_float);
+    bottom_blob_float = NULL;
+    free(bottom_blob_bordered);
+    bottom_blob_bordered = NULL;
 
     return 0;
 }

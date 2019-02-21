@@ -31,6 +31,7 @@ extern "C" {
 #define SAMPLE_SVP_NNIE_COORDI_NUM  4      /*coordinate numbers*/
 #define SAMpLE_SVP_NNIE_POLYGON 12
 #define SAMPLE_SVP_NNIE_PROPOSAL_WIDTH  14  /*the number of proposal values*/
+#define HAND_SVP_NNIE_PROPOSAL_WIDTH  6
 #define SAMPLE_SVP_NNIE_QUANT_BASE 4096    /*the base value*/
 #define SAMPLE_SVP_NNIE_IFDT_END_FLAG 5000 /*the end flag*/
 #define SAMPLE_SVP_NNIE_SCORE_NUM  2       /*the num of RPN scores*/

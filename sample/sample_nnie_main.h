@@ -36,7 +36,21 @@ extern "C"{
 
 typedef struct
 {
-    int x1,y1,x2,y2,x3,y3,x4,y4; //四边形坐标
+    int x1;
+    int y1;
+    int x2;
+    int y2;
+    int x3;
+    int y3;
+    int x4;
+    int y4; //四边形坐标
+    int xmin; 
+    int ymin;
+    int xmax;
+    int ymax;
+    int label;
+    
+    float score;
 }DKSBox;
 
 typedef struct
@@ -63,9 +77,20 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_Deinit(SAMPLE_SVP_NNIE_PARAM_S *pstNnieParam,
 HI_S32 SAMPLE_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     SAMPLE_SVP_NNIE_PARAM_S *pstNnieParam, SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftWareParam);
 
+HI_S32 HAND_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
+    SAMPLE_SVP_NNIE_PARAM_S *pstNnieParam, SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftWareParam);
+
+HI_S32 HAND_SVP_NNIE_Ssd_ParamInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
+    SAMPLE_SVP_NNIE_PARAM_S *pstNnieParam, SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftWareParam);
+
 HI_S32 SAMPLE_SVP_NNIE_Ssd_ParamInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     SAMPLE_SVP_NNIE_PARAM_S *pstNnieParam, SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftWareParam);
 
+HI_S32 TextBoxes_plusplus_Result(DKSMultiDetectionRes *DetectRes, SVP_BLOB_S *pstDstScore,
+    SVP_BLOB_S *pstDstRoi, SVP_BLOB_S *pstClassRoiNum, HI_FLOAT f32PrintResultThresh);
+
+HI_S32 SSD_Hand_Result(DKSMultiDetectionRes *DetectRes, SVP_BLOB_S *pstDstScore,
+    SVP_BLOB_S *pstDstRoi, SVP_BLOB_S *pstClassRoiNum, HI_FLOAT f32PrintResultThresh);
 
 /******************************************************************************
 * function : show SSD sample
