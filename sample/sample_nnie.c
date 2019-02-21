@@ -911,6 +911,7 @@ HI_S32 TextBoxes_plusplus_Result(DKSMultiDetectionRes *DetectRes, SVP_BLOB_S *ps
     HI_S32 s32X1 = 0,s32Y1= 0,s32X2 = 0,s32Y2 = 0;
     HI_S32 s32X3 = 0,s32Y3= 0,s32X4 = 0,s32Y4 = 0;
     int count = 0;
+    
 
     u32RoiNumBias += ps32ClassRoiNum[0];
     for (i = 1; i < u32ClassNum; i++)
@@ -920,7 +921,7 @@ HI_S32 TextBoxes_plusplus_Result(DKSMultiDetectionRes *DetectRes, SVP_BLOB_S *ps
         for (j = 0; j < (HI_U32)ps32ClassRoiNum[i]; j++)
         {
             f32Score = (HI_FLOAT)ps32Score[u32ScoreBias + j] / SAMPLE_SVP_NNIE_QUANT_BASE;
-            if (f32Score < f32PrintResultThresh)
+            if (f32Score < 0.4)
             {
                 continue;
             }
