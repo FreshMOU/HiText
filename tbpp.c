@@ -48,7 +48,7 @@ void DKMultiClassDetectionInit()
         "Error,SAMPLE_SVP_NNIE_Ssd_ParamInit failed!\n");
 
     SAMPLE_SVP_TRACE_INFO("DKMultiClassDetectionInit start\n");
-    HI_CHAR *pcModelName = "textboxes_fc7.wk";
+    HI_CHAR *pcModelName = "model_icdar15.wk";
     //HI_U32 u32PicNum = 1;
     //HI_S32 s32Ret = HI_SUCCESS;
     SAMPLE_SVP_NNIE_CFG_S   stNnieCfg = {0};
