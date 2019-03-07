@@ -550,6 +550,8 @@ HI_S32 HAND_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     HI_U32 u32TmpBufTotalSize = 0;
     HI_U64 u64PhyAddr = 0;
     HI_U8* pu8VirAddr = NULL;
+    HI_U32 ConfNumOutput[6] = {0};
+    HI_U32 LocNumOutput[6] = {0};
 
     /*Set Conv Parameters*/
     /*the SSD sample report resule is after permute operation,
@@ -560,41 +562,16 @@ HI_S32 HAND_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
         pstSoftWareParam->au32ConvHeight[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i].unShape.stWhc.u32Chn;
         pstSoftWareParam->au32ConvWidth[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i].unShape.stWhc.u32Height;
         pstSoftWareParam->au32ConvChannel[i] = pstNnieParam->pstModel->astSeg[0].astDstNode[i].unShape.stWhc.u32Width;
+
         if(i%2==1)
         {
+            pstSoftWareParam->au32PriorBoxWidth[i/2]  = pstSoftWareParam->au32ConvWidth[i];
+            pstSoftWareParam->au32PriorBoxHeight[i/2] = pstSoftWareParam->au32ConvHeight[i];
             pstSoftWareParam->au32ConvStride[i/2] = SAMPLE_SVP_NNIE_ALIGN16(pstSoftWareParam->au32ConvChannel[i]*sizeof(HI_U32))/sizeof(HI_U32);
         }
     }
     // FIXME:
     /*Set PriorBox Parameters*/
-    // pstSoftWareParam->au32PriorBoxWidth[0] = 38;
-    // pstSoftWareParam->au32PriorBoxWidth[1] = 19;
-    // pstSoftWareParam->au32PriorBoxWidth[2] = 10;
-    // pstSoftWareParam->au32PriorBoxWidth[3] = 5;
-    // pstSoftWareParam->au32PriorBoxWidth[4] = 3;
-    // pstSoftWareParam->au32PriorBoxWidth[5] = 1;
-
-    // pstSoftWareParam->au32PriorBoxHeight[0] = 38;
-    // pstSoftWareParam->au32PriorBoxHeight[1] = 19;
-    // pstSoftWareParam->au32PriorBoxHeight[2] = 10;
-    // pstSoftWareParam->au32PriorBoxHeight[3] = 5;
-    // pstSoftWareParam->au32PriorBoxHeight[4] = 3;
-    // pstSoftWareParam->au32PriorBoxHeight[5] = 1;
-
-    pstSoftWareParam->au32PriorBoxWidth[0] = 48;
-    pstSoftWareParam->au32PriorBoxWidth[1] = 24;
-    pstSoftWareParam->au32PriorBoxWidth[2] = 12;
-    pstSoftWareParam->au32PriorBoxWidth[3] = 6;
-    pstSoftWareParam->au32PriorBoxWidth[4] = 4;
-    pstSoftWareParam->au32PriorBoxWidth[5] = 2;
-
-    pstSoftWareParam->au32PriorBoxHeight[0] = 48;
-    pstSoftWareParam->au32PriorBoxHeight[1] = 24;
-    pstSoftWareParam->au32PriorBoxHeight[2] = 12;
-    pstSoftWareParam->au32PriorBoxHeight[3] = 6;
-    pstSoftWareParam->au32PriorBoxHeight[4] = 4;
-    pstSoftWareParam->au32PriorBoxHeight[5] = 2;
-
     pstSoftWareParam->u32OriImHeight = pstNnieParam->astSegData[0].astSrc[0].unShape.stWhc.u32Height;
     pstSoftWareParam->u32OriImWidth = pstNnieParam->astSegData[0].astSrc[0].unShape.stWhc.u32Width;
 
@@ -658,19 +635,26 @@ HI_S32 HAND_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     pstSoftWareParam->as32PriorBoxVar[2] = (HI_S32)(0.2f*SAMPLE_SVP_NNIE_QUANT_BASE);
     pstSoftWareParam->as32PriorBoxVar[3] = (HI_S32)(0.2f*SAMPLE_SVP_NNIE_QUANT_BASE);
 
+    ConfNumOutput[0] = 16;      // 对照网络修改，为各个Conf层的通道数
+    ConfNumOutput[1] = 24;
+    ConfNumOutput[2] = 24;
+    ConfNumOutput[3] = 24;
+    ConfNumOutput[4] = 16;
+    ConfNumOutput[5] = 16;
+
+    LocNumOutput[0] = 16;      // 对照网络修改，为各个Loc层的通道数
+    LocNumOutput[1] = 24;
+    LocNumOutput[2] = 24;
+    LocNumOutput[3] = 24;
+    LocNumOutput[4] = 16;
+    LocNumOutput[5] = 16;
+
     /*Set Softmax Parameters*/
     pstSoftWareParam->u32SoftMaxInHeight = 4;
-    pstSoftWareParam->au32SoftMaxInChn[0] = 36864;//27648;//17328;//121296;
-    pstSoftWareParam->au32SoftMaxInChn[1] = 13824;//10368;//6498;//45486;
-    pstSoftWareParam->au32SoftMaxInChn[2] = 3456;//2592;//1800;//12600;
-    pstSoftWareParam->au32SoftMaxInChn[3] = 864;//648;//450;//3150;
-    pstSoftWareParam->au32SoftMaxInChn[4] = 256;//192;//108;//756;
-    pstSoftWareParam->au32SoftMaxInChn[5] = 64;//48;//12;//84;
 
     pstSoftWareParam->u32ConcatNum = 6;
     pstSoftWareParam->u32SoftMaxOutWidth = 1;
     pstSoftWareParam->u32SoftMaxOutHeight = 4;
-    pstSoftWareParam->u32SoftMaxOutChn = 13832;//8732;
 
     /*Set DetectionOut Parameters*/
     pstSoftWareParam->u32ClassNum = 4;
@@ -678,12 +662,16 @@ HI_S32 HAND_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     pstSoftWareParam->u32KeepTopK = 200;
     pstSoftWareParam->u32NmsThresh = (HI_U16)(0.45f*SAMPLE_SVP_NNIE_QUANT_BASE);
     pstSoftWareParam->u32ConfThresh = 1;
-    pstSoftWareParam->au32DetectInputChn[0] = 36864;//23104;
-    pstSoftWareParam->au32DetectInputChn[1] = 13824;//8664;
-    pstSoftWareParam->au32DetectInputChn[2] = 3456;//2400;
-    pstSoftWareParam->au32DetectInputChn[3] = 864;//600;
-    pstSoftWareParam->au32DetectInputChn[4] = 256;//144;
-    pstSoftWareParam->au32DetectInputChn[5] = 64;//16;
+
+    HI_U32 u32SoftMaxOutChnTemp = 0;
+    for (i=0; i<6; i++)
+    {
+        HI_U32 MapSize = pstSoftWareParam->au32PriorBoxWidth[i] * pstSoftWareParam->au32PriorBoxHeight[i];
+        pstSoftWareParam->au32SoftMaxInChn[i] = ConfNumOutput[i] * MapSize;
+        pstSoftWareParam->au32DetectInputChn[i] = LocNumOutput[i] * MapSize;
+        u32SoftMaxOutChnTemp += MapSize * ConfNumOutput[i]/pstSoftWareParam->u32SoftMaxInHeight;
+    }
+    pstSoftWareParam->u32SoftMaxOutChn = u32SoftMaxOutChnTemp;
 
     /*Malloc assist buffer memory*/
     u32ClassNum = pstSoftWareParam->u32ClassNum;
