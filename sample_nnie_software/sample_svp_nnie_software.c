@@ -1371,7 +1371,9 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     Convolution layers[2];
     Convolution *pLayer;
     pLayer = &layers[0];
-    int pload = load_param_fp("nnie.param", pLayer);
+    int FeatureMapW = pstNnieParam->pstModel->astSeg[0].astDstNode[0].unShape.stWhc.u32Width;;
+    int FeatureMapH = pstNnieParam->pstModel->astSeg[0].astDstNode[0].unShape.stWhc.u32Height;;
+    int pload = load_param_fp("nnie.param", pLayer, FeatureMapW, FeatureMapH);
     if (pload != 0)
     {
         fprintf(stderr, "load_param_fp error!\n");
@@ -1380,8 +1382,6 @@ HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
 
     load_model_fp("nnie.bin", pLayer);
 
-    int FeatureMapW = 24;
-    int FeatureMapH = 24;
     int FeatureMapC[2] = {240, 40};
     float *PerDataAd;
     float *PermuteData[2];

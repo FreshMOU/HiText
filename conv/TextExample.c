@@ -1,9 +1,9 @@
 #include "TextExample.h"
 
 
-int w[4] = {48, 48, 24, 24};
-int h[4] = {48, 48, 24, 24};
-int c[4] = {512, 512, 1024, 1024};
+// int w[4] = {96, 96, 48, 48};
+// int h[4] = {96, 96, 48, 48};
+// int c[4] = {512, 512, 1024, 1024};
 
 /* layers有 4 层分别如下
 *  0 -> conv4_3_norm_mbox_loc
@@ -12,8 +12,9 @@ int c[4] = {512, 512, 1024, 1024};
 *  3 -> fc_mbox_conf
 */
 
-int load_param_fp(const char *protopath, Convolution *layers)
+int load_param_fp(const char *protopath, Convolution *layers, int w, int h)
 {
+    int c = 1024;
     FILE* fp = fopen(protopath, "rb");
     if (!fp)
     {
@@ -46,7 +47,7 @@ int load_param_fp(const char *protopath, Convolution *layers)
                 continue;
             }
 
-            int lr = load_param_conv(layers+layer_idx, layer_idx, w[layer_idx+2], h[layer_idx+2], c[layer_idx+2]);
+            int lr = load_param_conv(layers+layer_idx, layer_idx, w, h, c);
             if (lr != 0)
             {
                 fprintf(stderr, "layer load_param failed\n");
