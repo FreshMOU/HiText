@@ -798,6 +798,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
     HI_S32* ps32ConfScores, HI_S32* ps32AssistMemPool, HI_S32* ps32DstScoreSrc,
     HI_S32* ps32DstBboxSrc, HI_S32* ps32RoiOutCntSrc, float* PermuteData[])
 {
+    fprintf(stderr, "detectionout in.\n");
     /************* check input parameters ****************/
     /******** define variables **********/
     HI_S32* ps32LocPreds = NULL;
@@ -854,7 +855,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             ps32PriorVar = ps32PriorBoxes + u32NumPredsPerClass*SAMPLE_SVP_NNIE_COORDI_NUM;
             for (j = 0; j < u32NumPredsPerClass; j++)
             {
-                //printf("ps32PriorBoxes start***************\n");
+                fprintf(stderr, "ps32PriorBoxes start***************\n");
                 f32PriorWidth = (HI_FLOAT)(ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2] - ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM]);
                 f32PriorHeight = (HI_FLOAT)(ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3] - ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM + 1]);
                 f32PriorCenterX = (ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2] + ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM])*SAMPLE_SVP_NNIE_HALF;
@@ -872,29 +873,29 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
                 f32DecodeBoxHeight = exp(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+3]/SAMPLE_SVP_NNIE_QUANT_BASE)*
                     ((HI_FLOAT)ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+3]/SAMPLE_SVP_NNIE_QUANT_BASE))*f32PriorHeight;
 
-                //printf("ps32PriorBoxes end***************\n");
+                fprintf(stderr, "ps32PriorBoxes end***************\n");
 
                 ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterX - f32DecodeBoxWidth * SAMPLE_SVP_NNIE_HALF);
                 ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterY - f32DecodeBoxHeight * SAMPLE_SVP_NNIE_HALF);
                 ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterX + f32DecodeBoxWidth * SAMPLE_SVP_NNIE_HALF);
                 ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterY + f32DecodeBoxHeight * SAMPLE_SVP_NNIE_HALF);
                 /* polygon */
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 4]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 5]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 6]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 7]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 8]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 9]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+10]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+11]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 4]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 5]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 6]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 7]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 8]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+ 9]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+10]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPredsFloat[j*SAMpLE_SVP_NNIE_POLYGON+11]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
             }
         }
         else
@@ -907,7 +908,7 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
             ps32PriorVar = ps32PriorBoxes + u32NumPredsPerClass*SAMPLE_SVP_NNIE_COORDI_NUM;
             for (j = 0; j < u32NumPredsPerClass; j++)
             {
-                //printf("ps32PriorBoxes start***************\n");
+                fprintf(stderr, "ps32PriorBoxes start***************\n");
                 f32PriorWidth = (HI_FLOAT)(ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2] - ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM]);
                 f32PriorHeight = (HI_FLOAT)(ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3] - ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM + 1]);
                 f32PriorCenterX = (ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2] + ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM])*SAMPLE_SVP_NNIE_HALF;
@@ -925,29 +926,29 @@ static HI_S32 SVP_NNIE_Ssd_DetectionOutForward(HI_U32 u32ConcatNum,
                 f32DecodeBoxHeight = exp(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+3]/SAMPLE_SVP_NNIE_QUANT_BASE)*
                     ((HI_FLOAT)ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+3]/SAMPLE_SVP_NNIE_QUANT_BASE))*f32PriorHeight;
 
-                //printf("ps32PriorBoxes end***************\n");
+                fprintf(stderr, "ps32PriorBoxes end***************\n");
 
                 ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterX - f32DecodeBoxWidth * SAMPLE_SVP_NNIE_HALF);
                 ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterY - f32DecodeBoxHeight * SAMPLE_SVP_NNIE_HALF);
                 ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterX + f32DecodeBoxWidth * SAMPLE_SVP_NNIE_HALF);
                 ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(f32DecodeBoxCenterY + f32DecodeBoxHeight * SAMPLE_SVP_NNIE_HALF);
                 /* polygon */
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 4]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 5]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 6]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 7]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 8]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 9]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+10]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
-                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
-                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+11]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight+ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 4]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 5]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 6]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 7]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+1];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 8]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+2];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+ 9]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+10]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorWidth) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM];
+                ps32AllDecodeBoxes[u32SrcIdx++] = (HI_S32)(((HI_FLOAT)ps32PriorVar[j*SAMPLE_SVP_NNIE_COORDI_NUM+1]/SAMPLE_SVP_NNIE_QUANT_BASE)*
+                    (HI_FLOAT)(ps32LocPreds[j*SAMpLE_SVP_NNIE_POLYGON+11]/SAMPLE_SVP_NNIE_QUANT_BASE)*f32PriorHeight) +ps32PriorBoxes[j*SAMPLE_SVP_NNIE_COORDI_NUM+3];
             }
         }
     }

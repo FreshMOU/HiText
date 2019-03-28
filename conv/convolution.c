@@ -468,12 +468,12 @@ int forward_conv_cl(const int *bottom_blob, float *top_blob, Convolution *conv, 
     float *bottom_blob_bordered;
     int *bottom_blob_float;
     bottom_blob_bordered = (float*)malloc(w*h*channel*sizeof(float));
-    bottom_blob_float = (int*)malloc(conv->w*conv->h*channel*sizeof(int));
+    bottom_blob_float = (int*)malloc(w*h*channel*sizeof(int));
     memset(bottom_blob_bordered, 0, w*h*channel*sizeof(int));
     memset(bottom_blob_float, 0, w*h*channel*sizeof(int));
     
     copy_make_border(bottom_blob, bottom_blob_float, conv->pad_h, conv->pad_h, conv->pad_w, conv->pad_w, channel, 0.f, conv);
-    Int2Float(bottom_blob_float, bottom_blob_bordered, conv->w*conv->h*channel);
+    Int2Float(bottom_blob_float, bottom_blob_bordered, w*h*channel);
     int outw = (w - kernel_extent_w) / conv->stride_w + 1;
     int outh = (h - kernel_extent_h) / conv->stride_h + 1;
 
