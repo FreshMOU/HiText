@@ -76,8 +76,16 @@ typedef struct hiSAMPLE_SVP_NNIE_YOLOV2_BBOX
 HI_U32 SAMPLE_SVP_NNIE_Ssd_GetResultTmpBuf(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam);
 
+#ifdef OPENCL
+HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
+    SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam, Convolution *pLayer, cl_command_queue command_queue, cl_context context, cl_kernel kernel);
+#endif
+
+#ifdef ARM_NEON
 HI_S32 SAMPLE_SVP_NNIE_Ssd_GetResult(SAMPLE_SVP_NNIE_PARAM_S*pstNnieParam,
     SAMPLE_SVP_NNIE_SSD_SOFTWARE_PARAM_S* pstSoftwareParam);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

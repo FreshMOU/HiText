@@ -787,91 +787,91 @@ INIT_FAIL_0:
 /******************************************************************************
 * function : show SSD sample(image 300x300 U8_C3)
 ******************************************************************************/
-void SAMPLE_SVP_NNIE_Ssd(char *SrcFile, char *ModelName)
-{
-    // FIXME:
-    HI_CHAR *pcSrcFile = SrcFile;
-    HI_CHAR *pcModelName = ModelName;
-    HI_U32 u32PicNum = 1;
-    HI_FLOAT f32PrintResultThresh = 0.0f;
-    HI_S32 s32Ret = HI_SUCCESS;
-    SAMPLE_SVP_NNIE_CFG_S   stNnieCfg = {0};
-    SAMPLE_SVP_NNIE_INPUT_DATA_INDEX_S stInputDataIdx = {0};
-    SAMPLE_SVP_NNIE_PROCESS_SEG_INDEX_S stProcSegIdx = {0};
+// void SAMPLE_SVP_NNIE_Ssd(char *SrcFile, char *ModelName)
+// {
+//     // FIXME:
+//     HI_CHAR *pcSrcFile = SrcFile;
+//     HI_CHAR *pcModelName = ModelName;
+//     HI_U32 u32PicNum = 1;
+//     HI_FLOAT f32PrintResultThresh = 0.0f;
+//     HI_S32 s32Ret = HI_SUCCESS;
+//     SAMPLE_SVP_NNIE_CFG_S   stNnieCfg = {0};
+//     SAMPLE_SVP_NNIE_INPUT_DATA_INDEX_S stInputDataIdx = {0};
+//     SAMPLE_SVP_NNIE_PROCESS_SEG_INDEX_S stProcSegIdx = {0};
 
-    /*Set configuration parameter*/
-    f32PrintResultThresh = 0.2f;
-    stNnieCfg.pszPic= pcSrcFile;
-    stNnieCfg.u32MaxInputNum = u32PicNum; //max input image num in each batch
-    stNnieCfg.u32MaxRoiNum = 0;
-    stNnieCfg.aenNnieCoreId[0] = SVP_NNIE_ID_0;//set NNIE core
+//     /*Set configuration parameter*/
+//     f32PrintResultThresh = 0.2f;
+//     stNnieCfg.pszPic= pcSrcFile;
+//     stNnieCfg.u32MaxInputNum = u32PicNum; //max input image num in each batch
+//     stNnieCfg.u32MaxRoiNum = 0;
+//     stNnieCfg.aenNnieCoreId[0] = SVP_NNIE_ID_0;//set NNIE core
 
-    /*Sys init*/
-    SAMPLE_COMM_SVP_CheckSysInit();
+//     /*Sys init*/
+//     SAMPLE_COMM_SVP_CheckSysInit();
 
-    /*Ssd Load model*/
-    SAMPLE_SVP_TRACE_INFO("Ssd Load model!\n");
-    s32Ret = SAMPLE_COMM_SVP_NNIE_LoadModel(pcModelName,&s_stSsdModel);
-    SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
-        "Error,SAMPLE_COMM_SVP_NNIE_LoadModel failed!\n");
+//     /*Ssd Load model*/
+//     SAMPLE_SVP_TRACE_INFO("Ssd Load model!\n");
+//     s32Ret = SAMPLE_COMM_SVP_NNIE_LoadModel(pcModelName,&s_stSsdModel);
+//     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
+//         "Error,SAMPLE_COMM_SVP_NNIE_LoadModel failed!\n");
 
-    /*Ssd parameter initialization*/
-    /*Ssd parameters are set in SAMPLE_SVP_NNIE_Ssd_SoftwareInit,
-      if user has changed net struct, please make sure the parameter settings in
-      SAMPLE_SVP_NNIE_Ssd_SoftwareInit function are correct*/
-    SAMPLE_SVP_TRACE_INFO("Ssd parameter initialization!\n");
-    s_stSsdNnieParam.pstModel = &s_stSsdModel.stModel;
-    // FIXME:
-    s32Ret = SAMPLE_SVP_NNIE_Ssd_ParamInit(&stNnieCfg,&s_stSsdNnieParam,&s_stSsdSoftwareParam);
-    SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
-        "Error,SAMPLE_SVP_NNIE_Ssd_ParamInit failed!\n");
+//     /*Ssd parameter initialization*/
+//     /*Ssd parameters are set in SAMPLE_SVP_NNIE_Ssd_SoftwareInit,
+//       if user has changed net struct, please make sure the parameter settings in
+//       SAMPLE_SVP_NNIE_Ssd_SoftwareInit function are correct*/
+//     SAMPLE_SVP_TRACE_INFO("Ssd parameter initialization!\n");
+//     s_stSsdNnieParam.pstModel = &s_stSsdModel.stModel;
+//     // FIXME:
+//     s32Ret = SAMPLE_SVP_NNIE_Ssd_ParamInit(&stNnieCfg,&s_stSsdNnieParam,&s_stSsdSoftwareParam);
+//     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
+//         "Error,SAMPLE_SVP_NNIE_Ssd_ParamInit failed!\n");
 
-    struct timeval tv_begin, tv_end;
-    gettimeofday(&tv_begin,NULL);
-    /*Fill src data*/
-    SAMPLE_SVP_TRACE_INFO("Ssd start!\n");
-    stInputDataIdx.u32SegIdx = 0;
-    stInputDataIdx.u32NodeIdx = 0;
-    s32Ret = SAMPLE_SVP_NNIE_FillSrcData(stNnieCfg.pszPic,&s_stSsdNnieParam,&stInputDataIdx);
-    SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
-        "Error,SAMPLE_SVP_NNIE_FillSrcData failed!\n");
+//     struct timeval tv_begin, tv_end;
+//     gettimeofday(&tv_begin,NULL);
+//     /*Fill src data*/
+//     SAMPLE_SVP_TRACE_INFO("Ssd start!\n");
+//     stInputDataIdx.u32SegIdx = 0;
+//     stInputDataIdx.u32NodeIdx = 0;
+//     s32Ret = SAMPLE_SVP_NNIE_FillSrcData(stNnieCfg.pszPic,&s_stSsdNnieParam,&stInputDataIdx);
+//     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
+//         "Error,SAMPLE_SVP_NNIE_FillSrcData failed!\n");
 
-    /*NNIE process(process the 0-th segment)*/
-    stProcSegIdx.u32SegIdx = 0;
-    s32Ret = SAMPLE_SVP_NNIE_Forward(&s_stSsdNnieParam,&stInputDataIdx,&stProcSegIdx,HI_TRUE);
-    SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
-        "Error,SAMPLE_SVP_NNIE_Forward failed!\n");
+//     /*NNIE process(process the 0-th segment)*/
+//     stProcSegIdx.u32SegIdx = 0;
+//     s32Ret = SAMPLE_SVP_NNIE_Forward(&s_stSsdNnieParam,&stInputDataIdx,&stProcSegIdx,HI_TRUE);
+//     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
+//         "Error,SAMPLE_SVP_NNIE_Forward failed!\n");
 
 
-    /*software process*/
-    /*if user has changed net struct, please make sure SAMPLE_SVP_NNIE_Ssd_GetResult
-     function's input datas are correct*/
-    s32Ret = SAMPLE_SVP_NNIE_Ssd_GetResult(&s_stSsdNnieParam,&s_stSsdSoftwareParam);
-    SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
-        "Error,SAMPLE_SVP_NNIE_Ssd_GetResult failed!\n");
+//     /*software process*/
+//     /*if user has changed net struct, please make sure SAMPLE_SVP_NNIE_Ssd_GetResult
+//      function's input datas are correct*/
+//     s32Ret = SAMPLE_SVP_NNIE_Ssd_GetResult(&s_stSsdNnieParam,&s_stSsdSoftwareParam);
+//     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
+//         "Error,SAMPLE_SVP_NNIE_Ssd_GetResult failed!\n");
     
-    gettimeofday(&tv_end, NULL);
-    double total_time = (double) (tv_end.tv_sec - tv_begin.tv_sec)*1000 + (double)(tv_end.tv_usec - tv_begin.tv_usec)/1000;
-    //fprintf(stderr, "begin - end: %d\n", (int)tv_begin.tv_sec - (int)tv_end.tv_sec);
-    SAMPLE_SVP_TRACE_INFO("%.5f ms\n", total_time);
+//     gettimeofday(&tv_end, NULL);
+//     double total_time = (double) (tv_end.tv_sec - tv_begin.tv_sec)*1000 + (double)(tv_end.tv_usec - tv_begin.tv_usec)/1000;
+//     //fprintf(stderr, "begin - end: %d\n", (int)tv_begin.tv_sec - (int)tv_end.tv_sec);
+//     SAMPLE_SVP_TRACE_INFO("%.5f ms\n", total_time);
 
-    /*print result, this sample has 21 classes:
-     class 0:background     class 1:plane           class 2:bicycle
-     class 3:bird           class 4:boat            class 5:bottle
-     class 6:bus            class 7:car             class 8:cat
-     class 9:chair          class10:cow             class11:diningtable
-     class 12:dog           class13:horse           class14:motorbike
-     class 15:person        class16:pottedplant     class17:sheep
-     class 18:sofa          class19:train           class20:tvmonitor*/
-     SAMPLE_SVP_TRACE_INFO("Ssd result:\n");
-    (void)SAMPLE_SVP_NNIE_Detection_PrintResult(&s_stSsdSoftwareParam.stDstScore,
-        &s_stSsdSoftwareParam.stDstRoi, &s_stSsdSoftwareParam.stClassRoiNum,f32PrintResultThresh);
+//     /*print result, this sample has 21 classes:
+//      class 0:background     class 1:plane           class 2:bicycle
+//      class 3:bird           class 4:boat            class 5:bottle
+//      class 6:bus            class 7:car             class 8:cat
+//      class 9:chair          class10:cow             class11:diningtable
+//      class 12:dog           class13:horse           class14:motorbike
+//      class 15:person        class16:pottedplant     class17:sheep
+//      class 18:sofa          class19:train           class20:tvmonitor*/
+//      SAMPLE_SVP_TRACE_INFO("Ssd result:\n");
+//     (void)SAMPLE_SVP_NNIE_Detection_PrintResult(&s_stSsdSoftwareParam.stDstScore,
+//         &s_stSsdSoftwareParam.stDstRoi, &s_stSsdSoftwareParam.stClassRoiNum,f32PrintResultThresh);
 
 
-SSD_FAIL_0:
-    SAMPLE_SVP_NNIE_Ssd_Deinit(&s_stSsdNnieParam,&s_stSsdSoftwareParam,&s_stSsdModel);
-    SAMPLE_COMM_SVP_CheckSysExit();
-}
+// SSD_FAIL_0:
+//     SAMPLE_SVP_NNIE_Ssd_Deinit(&s_stSsdNnieParam,&s_stSsdSoftwareParam,&s_stSsdModel);
+//     SAMPLE_COMM_SVP_CheckSysExit();
+// }
 
 HI_S32 TextBoxes_plusplus_Result(DKSMultiDetectionRes *DetectRes, SVP_BLOB_S *pstDstScore,
     SVP_BLOB_S *pstDstRoi, SVP_BLOB_S *pstClassRoiNum, HI_FLOAT f32PrintResultThresh)

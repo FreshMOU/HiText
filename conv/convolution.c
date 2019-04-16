@@ -356,6 +356,7 @@ void permute(float *src, float *dst, int type, int w, int h, int channel)
     
 }
 
+#ifdef ARM_NEON
 int forward_conv_arm(const int *bottom_blob, float *top_blob, Convolution *conv)
 {
     const int kernel_extent_w = conv->dilation_w * (conv->kernel_w - 1) + 1;
@@ -489,7 +490,7 @@ int forward_conv_compile(const int *bottom_blob, float *top_blob, Convolution *c
     memset(bottom_blob_float, 0, w*h*channel*sizeof(int));
     
     copy_make_border(bottom_blob, bottom_blob_float, conv->pad_h, conv->pad_h, conv->pad_w, conv->pad_w, channel, 0.f, conv);
-    Int2Float(bottom_blob_float, bottom_blob_bordered, conv->w*conv->h*channel);
+    Int2Float(bottom_blob_float, bottom_blob_bordered, w*h*channel);
 
     int outw = (w - kernel_extent_w) / conv->stride_w + 1;
     int outh = (h - kernel_extent_h) / conv->stride_h + 1;
@@ -685,3 +686,75 @@ int forward_conv_compile(const int *bottom_blob, float *top_blob, Convolution *c
 
     return 0;
 }
+#endif
+
+#ifdef OPENCL
+int forward_conv_cl(const int *bottom_blob, float *top_blob, Convolution *conv, cl_command_queue command_queue, cl_context context, cl_kernel kernel)
+{
+    const int kernel_extent_w = conv->dilation_w * (conv->kernel_w - 1) + 1;
+    const int kernel_extent_h = conv->dilation_h * (conv->kernel_h - 1) + 1;
+
+    int w = conv->w + conv->pad_w + conv->pad_w;
+    int h = conv->h + conv->pad_h + conv->pad_h;
+    int channel = conv->c;
+    float *bottom_blob_bordered;
+    int *bottom_blob_float;
+    bottom_blob_bordered = (float*)malloc(w*h*channel*sizeof(float));
+    bottom_blob_float = (int*)malloc(w*h*channel*sizeof(int));
+    memset(bottom_blob_bordered, 0, w*h*channel*sizeof(int));
+    memset(bottom_blob_float, 0, w*h*channel*sizeof(int));
+    
+    copy_make_border(bottom_blob, bottom_blob_float, conv->pad_h, conv->pad_h, conv->pad_w, conv->pad_w, channel, 0.f, conv);
+    Int2Float(bottom_blob_float, bottom_blob_bordered, w*h*channel);
+    int outw = (w - kernel_extent_w) / conv->stride_w + 1;
+    int outh = (h - kernel_extent_h) / conv->stride_h + 1;
+
+    int i,j;
+    for (i = 0; i < 280; i++ )
+    {
+        for (j = 0; j < 24*24; j++)
+            top_blob[i*24*24 + j] = conv->bias_data[i];
+    }
+
+    cl_int ret;
+
+    cl_mem in_mem_obj  = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        (w*h*1024) * sizeof(float), bottom_blob_bordered, &ret);
+    cl_mem weight_mem_obj  = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        5*3*1024*280 * sizeof(float), conv->weight_data, &ret);
+    cl_mem out_mem_obj = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                        outw*outh*280*sizeof(float) , top_blob, &ret);
+    void *mapped_memory;
+    
+    ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&in_mem_obj);
+    ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&weight_mem_obj);
+    ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&out_mem_obj);
+
+    // Execute the OpenCL kernel on the list
+    size_t global_item_size[3] = {3, 24, 280}; // Process the entire lists
+    size_t local_item_size[3] = {1, 2, 14}; // Divide work items into groups of 64
+    for (i = 0; i < 1024; i++)
+    {
+        ret = clSetKernelArg(kernel, 3, sizeof(int), (void *)&i);
+        ret = clEnqueueNDRangeKernel(command_queue, kernel, 3, NULL,
+                                 global_item_size, local_item_size, 0, NULL, NULL);
+        //ret = clEnqueueReadBuffer(command_queue, out_mem_obj, CL_TRUE, 0, outw*outh*240*sizeof(float), top_blob, 0, NULL, NULL);
+
+        //clFinish(command_queue);
+    }
+
+    mapped_memory = clEnqueueMapBuffer(command_queue, out_mem_obj, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 
+                            0, outw*outh*280*sizeof(float), 0, NULL, NULL, &ret);
+    memcpy(top_blob, mapped_memory, outw*outh*280*sizeof(float));
+    ret = clEnqueueUnmapMemObject(command_queue, out_mem_obj, mapped_memory, 0, NULL, NULL);
+
+    ret = clFlush(command_queue);
+    ret = clFinish(command_queue);
+    ret = clReleaseMemObject(in_mem_obj);
+    ret = clReleaseMemObject(weight_mem_obj);
+    ret = clReleaseMemObject(out_mem_obj);
+
+
+    return 0;
+}
+#endif
