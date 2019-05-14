@@ -565,6 +565,19 @@ HI_S32 HAND_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     pstSoftWareParam->u32OriImHeight = pstNnieParam->astSegData[0].astSrc[0].unShape.stWhc.u32Height;
     pstSoftWareParam->u32OriImWidth = pstNnieParam->astSegData[0].astSrc[0].unShape.stWhc.u32Width;
 
+    // pstSoftWareParam->af32PriorBoxMinSize[0][0] = 76;//30.0f;
+    // pstSoftWareParam->af32PriorBoxMinSize[1][0] = 153;//60.0f;
+    // pstSoftWareParam->af32PriorBoxMinSize[2][0] = 284;//111.0f;
+    // pstSoftWareParam->af32PriorBoxMinSize[3][0] = 414;//162.0f;
+    // pstSoftWareParam->af32PriorBoxMinSize[4][0] = 545;//213.0f;
+    // pstSoftWareParam->af32PriorBoxMinSize[5][0] = 675;//264.0f;
+
+    // pstSoftWareParam->af32PriorBoxMaxSize[0][0] = 153;//60.0f;
+    // pstSoftWareParam->af32PriorBoxMaxSize[1][0] = 284;//111.0f;
+    // pstSoftWareParam->af32PriorBoxMaxSize[2][0] = 414;//162.0f;
+    // pstSoftWareParam->af32PriorBoxMaxSize[3][0] = 545;//213.0f;
+    // pstSoftWareParam->af32PriorBoxMaxSize[4][0] = 675;//264.0f;
+    // pstSoftWareParam->af32PriorBoxMaxSize[5][0] = 806;//315.0f;
     pstSoftWareParam->af32PriorBoxMinSize[0][0] = 30.0f;
     pstSoftWareParam->af32PriorBoxMinSize[1][0] = 60.0f;
     pstSoftWareParam->af32PriorBoxMinSize[2][0] = 111.0f;
@@ -625,12 +638,14 @@ HI_S32 HAND_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     pstSoftWareParam->as32PriorBoxVar[2] = (HI_S32)(0.2f*SAMPLE_SVP_NNIE_QUANT_BASE);
     pstSoftWareParam->as32PriorBoxVar[3] = (HI_S32)(0.2f*SAMPLE_SVP_NNIE_QUANT_BASE);
 
-    ConfNumOutput[0] = 16;      // 对照网络修改，为各个Conf层的通道数
-    ConfNumOutput[1] = 24;
-    ConfNumOutput[2] = 24;
-    ConfNumOutput[3] = 24;
-    ConfNumOutput[4] = 16;
-    ConfNumOutput[5] = 16;
+    /*Set Softmax Parameters*/
+    pstSoftWareParam->u32SoftMaxInHeight = 9; //4
+    ConfNumOutput[0] = pstSoftWareParam->u32SoftMaxInHeight*4;//16;      // 对照网络修改，为各个Conf层的通道数
+    ConfNumOutput[1] = pstSoftWareParam->u32SoftMaxInHeight*6;//24;
+    ConfNumOutput[2] = pstSoftWareParam->u32SoftMaxInHeight*6;//24;
+    ConfNumOutput[3] = pstSoftWareParam->u32SoftMaxInHeight*6;//24;
+    ConfNumOutput[4] = pstSoftWareParam->u32SoftMaxInHeight*4;//16;
+    ConfNumOutput[5] = pstSoftWareParam->u32SoftMaxInHeight*4;//16;
 
     LocNumOutput[0] = 16;      // 对照网络修改，为各个Loc层的通道数
     LocNumOutput[1] = 24;
@@ -639,15 +654,12 @@ HI_S32 HAND_SVP_NNIE_Ssd_SoftwareInit(SAMPLE_SVP_NNIE_CFG_S* pstCfg,
     LocNumOutput[4] = 16;
     LocNumOutput[5] = 16;
 
-    /*Set Softmax Parameters*/
-    pstSoftWareParam->u32SoftMaxInHeight = 4;
-
     pstSoftWareParam->u32ConcatNum = 6;
     pstSoftWareParam->u32SoftMaxOutWidth = 1;
-    pstSoftWareParam->u32SoftMaxOutHeight = 4;
+    pstSoftWareParam->u32SoftMaxOutHeight = 9; //4
 
     /*Set DetectionOut Parameters*/
-    pstSoftWareParam->u32ClassNum = 4;
+    pstSoftWareParam->u32ClassNum = 9; //4
     pstSoftWareParam->u32TopK = 400;
     pstSoftWareParam->u32KeepTopK = 200;
     pstSoftWareParam->u32NmsThresh = (HI_U16)(0.45f*SAMPLE_SVP_NNIE_QUANT_BASE);
@@ -876,7 +888,7 @@ INIT_FAIL_0:
 HI_S32 TextBoxes_plusplus_Result(DKSMultiDetectionRes *DetectRes, SVP_BLOB_S *pstDstScore,
     SVP_BLOB_S *pstDstRoi, SVP_BLOB_S *pstClassRoiNum, HI_FLOAT f32PrintResultThresh)
 {
-    fprintf(stderr, "score: %f  \n", f32PrintResultThresh);
+    //fprintf(stderr, "score: %f  \n", f32PrintResultThresh);
     HI_U32 i = 0, j = 0;
     HI_U32 u32RoiNumBias = 0;
     HI_U32 u32ScoreBias = 0;
@@ -934,7 +946,7 @@ HI_S32 TextBoxes_plusplus_Result(DKSMultiDetectionRes *DetectRes, SVP_BLOB_S *ps
 HI_S32 SSD_Hand_Result(DKSMultiDetectionRes *DetectRes, SVP_BLOB_S *pstDstScore,
     SVP_BLOB_S *pstDstRoi, SVP_BLOB_S *pstClassRoiNum, HI_FLOAT f32PrintResultThresh)
 {
-    fprintf(stderr, "hand_face score: %f\n", f32PrintResultThresh);
+    //fprintf(stderr, "hand_face score: %f\n", f32PrintResultThresh);
     HI_U32 i = 0, j = 0;
     HI_U32 u32RoiNumBias = 0;
     HI_U32 u32ScoreBias = 0;
@@ -963,7 +975,7 @@ HI_S32 SSD_Hand_Result(DKSMultiDetectionRes *DetectRes, SVP_BLOB_S *pstDstScore,
             s32YMin = ps32Roi[u32BboxBias + j*SAMPLE_SVP_NNIE_COORDI_NUM + 1];
             s32XMax = ps32Roi[u32BboxBias + j*SAMPLE_SVP_NNIE_COORDI_NUM + 2];
             s32YMax = ps32Roi[u32BboxBias + j*SAMPLE_SVP_NNIE_COORDI_NUM + 3];
-            SAMPLE_SVP_TRACE_INFO("%d %d %d %d %f\n", s32XMin, s32YMin, s32XMax, s32YMax, f32Score);
+            //SAMPLE_SVP_TRACE_INFO("%d %d %d %d %f\n", s32XMin, s32YMin, s32XMax, s32YMax, f32Score);
             DetectRes->boxes[count].xmin = s32XMin;
             DetectRes->boxes[count].ymin = s32YMin;
             DetectRes->boxes[count].xmax = s32XMax;

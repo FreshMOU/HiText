@@ -17,7 +17,7 @@ TARGET := libhitbpp.a
 # compile linux or HuaweiLite
 # target source
 $(OBJS) : $(SRCS)
-	$(CC) -c -DOPENCL $^ -o $@
+	$(CC) -c -DARM_NEON $^ -o $@
 
 OBJS  := $(SRCS:%.c=%.o)
 

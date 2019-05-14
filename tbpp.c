@@ -93,7 +93,7 @@ void DKMultiClassDetectionInit()
     SAMPLE_COMM_SVP_CheckSysInit();
 
     /*Ssd Load model*/
-    SAMPLE_SVP_TRACE_INFO("Ssd_Hnad Load model!\n");
+    //SAMPLE_SVP_TRACE_INFO("Ssd_Hnad Load model!\n");
     s32Ret = SAMPLE_COMM_SVP_NNIE_LoadModel(hand_pcModelName,&s_stHandModel);
     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
         "Error,SAMPLE_COMM_SVP_NNIE_LoadModel failed!\n");
@@ -102,7 +102,7 @@ void DKMultiClassDetectionInit()
     /*Ssd parameters are set in SAMPLE_SVP_NNIE_Ssd_SoftwareInit,
       if user has changed net struct, please make sure the parameter settings in
       SAMPLE_SVP_NNIE_Ssd_SoftwareInit function are correct*/
-    SAMPLE_SVP_TRACE_INFO("Ssd_Hand parameter initialization!\n");
+    //SAMPLE_SVP_TRACE_INFO("Ssd_Hand parameter initialization!\n");
     s_stHandNnieParam.pstModel = &s_stHandModel.stModel;
     // FIXME:
     s32Ret = HAND_SVP_NNIE_Ssd_ParamInit(&hand_stNnieCfg,&s_stHandNnieParam,&s_stHandSoftwareParam);
@@ -124,7 +124,7 @@ void DKMultiClassDetectionInit()
     //SAMPLE_COMM_SVP_CheckSysInit();
 
     /*Ssd Load model*/
-    SAMPLE_SVP_TRACE_INFO("Ssd Load model!\n");
+    //SAMPLE_SVP_TRACE_INFO("TextBoxes_plusplus Load model!\n");
     s32Ret = SAMPLE_COMM_SVP_NNIE_LoadModel(pcModelName,&s_stSsdModel);
     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
         "Error,SAMPLE_COMM_SVP_NNIE_LoadModel failed!\n");
@@ -133,7 +133,7 @@ void DKMultiClassDetectionInit()
     /*Ssd parameters are set in SAMPLE_SVP_NNIE_Ssd_SoftwareInit,
       if user has changed net struct, please make sure the parameter settings in
       SAMPLE_SVP_NNIE_Ssd_SoftwareInit function are correct*/
-    SAMPLE_SVP_TRACE_INFO("Ssd parameter initialization!\n");
+    //SAMPLE_SVP_TRACE_INFO("TextBoxes_plusplus parameter initialization!\n");
     s_stTextNnieParam.pstModel = &s_stSsdModel.stModel;
     // FIXME:
     s32Ret = SAMPLE_SVP_NNIE_Ssd_ParamInit(&stNnieCfg,&s_stTextNnieParam,&s_stSsdSoftwareParam);
@@ -169,7 +169,7 @@ void DKMultiClassDetectionInit()
     
     ret = clGetDeviceIDs( platform_id, CL_DEVICE_TYPE_GPU, 1,
                          &device_id, &ret_num_devices);
-    fprintf(stderr, "ret_num_devices:  %d\n", ret_num_devices);
+    //fprintf(stderr, "ret_num_devices:  %d\n", ret_num_devices);
 
     // Create an OpenCL context
     context = clCreateContext( NULL, 1, &device_id, NULL, NULL, &ret);
@@ -207,7 +207,7 @@ DKSMultiDetectionRes DKMultiClassDetectionProcess(char * imgfilename, float f32P
     struct timeval tv_begin, tv_end;
     gettimeofday(&tv_begin,NULL);
     /*Fill src data*/
-    SAMPLE_SVP_TRACE_INFO("Ssd start!\n");
+    //SAMPLE_SVP_TRACE_INFO("TextBoxes_plusplus start!\n");
     stInputDataIdx.u32SegIdx = 0;
     stInputDataIdx.u32NodeIdx = 0;
     s32Ret = SAMPLE_SVP_NNIE_FillSrcData(imgfilename, &s_stTextNnieParam, &stInputDataIdx);
@@ -237,9 +237,9 @@ DKSMultiDetectionRes DKMultiClassDetectionProcess(char * imgfilename, float f32P
     gettimeofday(&tv_end, NULL);
     double total_time = (double) (tv_end.tv_sec - tv_begin.tv_sec)*1000 + (double)(tv_end.tv_usec - tv_begin.tv_usec)/1000;
     //fprintf(stderr, "begin - end: %d\n", (int)tv_begin.tv_sec - (int)tv_end.tv_sec);
-    SAMPLE_SVP_TRACE_INFO("%.5f ms\n", total_time);
+    //SAMPLE_SVP_TRACE_INFO("%.5f ms\n", total_time);
     //SAMPLE_SVP_TRACE_INFO("%f\n", f32PrintResultThresh);
-    SAMPLE_SVP_TRACE_INFO("Text result:\n");
+    //SAMPLE_SVP_TRACE_INFO("Text result:\n");
     (void)TextBoxes_plusplus_Result(&DetectRes, &s_stSsdSoftwareParam.stDstScore,
         &s_stSsdSoftwareParam.stDstRoi, &s_stSsdSoftwareParam.stClassRoiNum,f32PrintResultThresh);
 
@@ -260,7 +260,7 @@ DKSMultiDetectionRes DKHandProcess(char * imgfilename, float f32PrintResultThres
     //HI_FLOAT f32PrintResultThresh = 0.5f;
 
     /*Fill src data*/
-    SAMPLE_SVP_TRACE_INFO("Ssd_hand start!\n");
+    //SAMPLE_SVP_TRACE_INFO("Ssd_hand start!\n");
     stInputDataIdx.u32SegIdx = 0;
     stInputDataIdx.u32NodeIdx = 0;
     s32Ret = SAMPLE_SVP_NNIE_FillSrcData(imgfilename, &s_stHandNnieParam, &stInputDataIdx);
@@ -268,20 +268,20 @@ DKSMultiDetectionRes DKHandProcess(char * imgfilename, float f32PrintResultThres
         "Error,SAMPLE_SVP_NNIE_FillSrcData failed!\n");
 
     /*NNIE process(process the 0-th segment)*/
-    SAMPLE_SVP_TRACE_INFO("Hand forward start!\n");
+    //SAMPLE_SVP_TRACE_INFO("Hand forward start!\n");
     stProcSegIdx.u32SegIdx = 0;
     s32Ret = SAMPLE_SVP_NNIE_Forward(&s_stHandNnieParam,&stInputDataIdx,&stProcSegIdx,HI_TRUE);
     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
         "Error,SAMPLE_SVP_NNIE_Forward failed!\n");
 
-    SAMPLE_SVP_TRACE_INFO("get Hand result start!\n");
+    //SAMPLE_SVP_TRACE_INFO("get Hand result start!\n");
     /*software process*/
     /*if user has changed net struct, please make sure SAMPLE_SVP_NNIE_Ssd_GetResult
      function's input datas are correct*/
     s32Ret = Hand_SVP_NNIE_Ssd_GetResult(&s_stHandNnieParam,&s_stHandSoftwareParam);
     SAMPLE_SVP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret,SSD_FAIL_0,SAMPLE_SVP_ERR_LEVEL_ERROR,
         "Error,SAMPLE_SVP_NNIE_Ssd_GetResult failed!\n");
-     SAMPLE_SVP_TRACE_INFO("Hand result:\n");
+    // SAMPLE_SVP_TRACE_INFO("Hand result:\n");
     (void)SSD_Hand_Result(&DetectRes, &s_stHandSoftwareParam.stDstScore,
         &s_stHandSoftwareParam.stDstRoi, &s_stHandSoftwareParam.stClassRoiNum,f32PrintResultThresh);
 
